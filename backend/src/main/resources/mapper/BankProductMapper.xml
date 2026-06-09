@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bank.module.product.BankProductMapper">
+
+    <!-- 物理删除（绕过逻辑删除） -->
+    <delete id="wipeById">
+        DELETE FROM bank_product WHERE id = #{id}
+    </delete>
+
+    <!-- 恢复产品（绕过逻辑删除，直接更新 deleted 字段） -->
+    <update id="recoverById">
+        UPDATE bank_product SET deleted = 0 WHERE id = #{id}
+    </update>
+
+    <!-- 查询已删除产品列表（绕过逻辑删除） -->
+    <select id="selectDeletedList" resultType="com.bank.module.product.BankProduct">
+        SELECT * FROM bank_product
+        WHERE deleted = 1
+        <if test="productType != null and productType > 0">
+            AND product_type = #{productType}
+        </if>
+        ORDER BY update_time DESC
+    </select>
+
+    <!-- 查询已删除总数 -->
+    <select id="selectDeletedCount" resultType="long">
+        SELECT COUNT(*) FROM bank_product WHERE deleted = 1
+        <if test="productType != null and productType > 0">
+            AND product_type = #{productType}
+        </if>
+    </select>
+
+</mapper>

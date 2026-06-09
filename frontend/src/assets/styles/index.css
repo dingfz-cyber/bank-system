@@ -1,0 +1,168 @@
+/* ===================================
+   网银系统 - 全局样式
+   =================================== */
+
+/* CSS 变量 */
+:root {
+  --color-primary: #409eff;
+  --color-success: #67c23a;
+  --color-warning: #e6a23c;
+  --color-danger: #f56c6c;
+  --color-info: #909399;
+  --color-text-primary: #303133;
+  --color-text-regular: #606266;
+  --color-text-secondary: #909399;
+  --color-border: #e4e7ed;
+  --color-bg: #f5f7fa;
+  --color-white: #fff;
+  --font-family: 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
+  --header-height: 60px;
+  --footer-height: 60px;
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+}
+
+/* ========== 产品卡片 ========== */
+.product-col {
+  margin-bottom: 24px;
+}
+
+.product-card {
+  text-align: center;
+  padding: 20px 12px;
+  cursor: default;
+  transition: transform 0.2s;
+  border-radius: 8px;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+}
+
+.product-img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 12px;
+  background: var(--color-bg);
+  border-radius: 8px;
+}
+
+.product-card h3 {
+  margin: 8px 0;
+  font-size: 16px;
+  color: var(--color-text-primary);
+}
+
+.rate {
+  color: var(--color-danger);
+  font-size: 20px;
+  font-weight: bold;
+  margin: 4px 0;
+}
+
+.intro {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* ========== 表单页面 ========== */
+.form-page {
+  display: flex;
+  justify-content: center;
+  padding: 80px 20px;
+}
+
+.form-card {
+  width: 500px;
+}
+
+.form-card-sm {
+  width: 400px;
+}
+
+.form-card h2 {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.form-link {
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-top: 16px;
+}
+
+.product-name {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* ========== 分页 ========== */
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+/* ========== 图片占位 ========== */
+.img-placeholder {
+  width: 80px;
+  height: 40px;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* ========== 通用页面布局 ========== */
+.page {
+  padding: 30px 40px;
+}
+
+.page-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: var(--color-text-primary);
+}
+
+.page-desc {
+  margin: 0 0 24px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}

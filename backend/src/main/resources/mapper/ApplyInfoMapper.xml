@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bank.module.apply.ApplyInfoMapper">
+
+    <!-- 物理删除（绕过逻辑删除） -->
+    <delete id="wipeById">
+        DELETE FROM apply_info WHERE id = #{id}
+    </delete>
+
+    <!-- 恢复申请（绕过逻辑删除） -->
+    <update id="recoverById">
+        UPDATE apply_info SET deleted = 0 WHERE id = #{id}
+    </update>
+
+    <!-- 查询已删除申请列表 -->
+    <select id="selectDeletedList" resultType="com.bank.module.apply.ApplyInfo">
+        SELECT * FROM apply_info
+        WHERE deleted = 1
+        ORDER BY update_time DESC
+    </select>
+
+    <select id="selectDeletedCount" resultType="long">
+        SELECT COUNT(*) FROM apply_info WHERE deleted = 1
+    </select>
+
+</mapper>
