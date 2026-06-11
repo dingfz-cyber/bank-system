@@ -25,6 +25,18 @@ public class ApplyInfo {
 
     private Integer applyType;
 
+    /** 审核状态：0=待审核 1=已通过 2=已拒绝 */
+    private Integer status;
+
+    /** 审核备注/拒绝原因 */
+    private String remark;
+
+    /** 审批人 ID */
+    private Long approverId;
+
+    /** 审批时间 */
+    private LocalDateTime approveTime;
+
     @TableLogic
     private Integer deleted;
 

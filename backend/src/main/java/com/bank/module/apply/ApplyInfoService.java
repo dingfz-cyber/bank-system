@@ -29,6 +29,21 @@ public interface ApplyInfoService {
     void recover(Long id);
 
     /**
+     * 更新申请
+     */
+    void update(Long id, ApplyDto dto);
+
+    /**
+     * 软删除申请
+     */
+    void delete(Long id);
+
+    /**
+     * 审批申请
+     */
+    void approve(Long id, Integer status, String remark, Long approverId);
+
+    /**
      * 物理删除
      */
     void wipe(Long id);

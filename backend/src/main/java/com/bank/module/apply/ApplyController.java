@@ -59,8 +59,8 @@ public class ApplyController {
             HttpServletRequest request) {
         Long roleId = getRoleId(request);
         Long userId = null;
-        // 非管理员只看自己的申请
-        if (roleId != 1L && roleId != 2L) {
+        // SYS_ADMIN(1) 和 OPERATOR(4) 看全部，其余只看自己的
+        if (roleId != 1L && roleId != 4L) {
             userId = getUserId(request);
         }
         return Result.success(PageResult.of(applyInfoService.page(page, pageSize, userId)));
@@ -70,7 +70,7 @@ public class ApplyController {
      * 回收站查询（管理员）
      */
     @GetMapping("/recycle")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("OPERATOR")
     public Result<PageResult<ApplyInfo>> recycle(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize) {
@@ -78,10 +78,44 @@ public class ApplyController {
     }
 
     /**
+     * 更新申请（管理员）
+     */
+    @PutMapping("/{id}")
+    @RequireRole("OPERATOR")
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody ApplyDto dto) {
+        applyInfoService.update(id, dto);
+        return Result.success();
+    }
+
+    /**
+     * 软删除申请（管理员）
+     */
+    @DeleteMapping("/{id}")
+    @RequireRole("OPERATOR")
+    public Result<Void> delete(@PathVariable Long id) {
+        applyInfoService.delete(id);
+        return Result.success();
+    }
+
+    /**
+     * 审批申请（管理员）
+     */
+    @PostMapping("/approve/{id}")
+    @RequireRole("OPERATOR")
+    public Result<Void> approve(@PathVariable Long id,
+                                @RequestParam Integer status,
+                                @RequestParam(required = false) String remark,
+                                HttpServletRequest request) {
+        Long approverId = getUserId(request);
+        applyInfoService.approve(id, status, remark, approverId);
+        return Result.success();
+    }
+
+    /**
      * 恢复申请（管理员）
      */
     @PostMapping("/recover/{id}")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("OPERATOR")
     public Result<Void> recover(@PathVariable Long id) {
         applyInfoService.recover(id);
         return Result.success();
@@ -91,7 +125,7 @@ public class ApplyController {
      * 物理删除（管理员）
      */
     @DeleteMapping("/wipe/{id}")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("SYS_ADMIN")
     public Result<Void> wipe(@PathVariable Long id) {
         applyInfoService.wipe(id);
         return Result.success();

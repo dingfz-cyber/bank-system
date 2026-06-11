@@ -45,6 +45,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/product/list",
                         "/product/detail/**",
                         "/banner/list",
+                        "/news/list",
+                        "/news/detail/**",
                         "/error"
                 );
     }

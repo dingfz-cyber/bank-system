@@ -23,4 +23,49 @@ public interface UserService {
      * 获取用户信息
      */
     UserVo getUserInfo(Long userId);
+
+    /**
+     * 修改个人信息
+     */
+    void updateProfile(Long userId, String nickName);
+
+    /**
+     * 修改密码
+     */
+    void changePassword(Long userId, String oldPassword, String newPassword);
+
+    /**
+     * 设置/修改交易密码
+     */
+    void setTransactionPassword(Long userId, String password);
+
+    /**
+     * 短信验证码登录
+     */
+    UserVo smsLogin(String phone, String code);
+
+    /**
+     * 忘记密码—重置登录密码
+     */
+    void resetPassword(String phone, String newPassword);
+
+    /**
+     * 全量用户列表
+     */
+    java.util.List<User> listAll();
+
+    /**
+     * 锁定用户
+     */
+    void lockUser(Long id);
+
+    /**
+     * 解锁用户
+     */
+    void unlockUser(Long id);
+
+    /**
+     * 管理员重置用户密码
+     */
+    void adminResetPassword(Long id);
 }

@@ -36,11 +36,6 @@ public class RoleInterceptor implements HandlerInterceptor {
 
         long roleId = Long.parseLong(roleIdAttr.toString());
 
-        // 超级管理员（roleId=1）拥有所有权限
-        if (roleId == 1L) {
-            return true;
-        }
-
         if (annotation.anyRole()) {
             return true;
         }
@@ -57,9 +52,11 @@ public class RoleInterceptor implements HandlerInterceptor {
 
     private long getRoleIdByCode(String roleCode) {
         return switch (roleCode.toUpperCase()) {
-            case "SUPER_ADMIN" -> 1L;
-            case "OPERATOR" -> 2L;
-            case "USER" -> 3L;
+            case "SYS_ADMIN" -> 1L;
+            case "AUDITOR" -> 2L;
+            case "BIZ_ADMIN" -> 3L;
+            case "OPERATOR" -> 4L;
+            case "USER" -> 5L;
             default -> throw new BusinessException("未知角色编码: " + roleCode);
         };
     }

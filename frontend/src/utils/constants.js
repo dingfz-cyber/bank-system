@@ -22,6 +22,13 @@ export const APPLY_TYPE_MAP = {
   2: '贷款'
 }
 
+// 申请状态映射
+export const APPLY_STATUS_MAP = {
+  0: '待审核',
+  1: '已通过',
+  2: '已拒绝'
+}
+
 // 角色映射
 export const ROLE_MAP = {
   1: '超级管理员',

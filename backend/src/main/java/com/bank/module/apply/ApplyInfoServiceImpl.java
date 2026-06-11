@@ -6,9 +6,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bank.common.BusinessException;
 import com.bank.log.OperationLog;
 import com.bank.module.apply.dto.ApplyDto;
+import com.bank.module.card.BankCardService;
+import com.bank.module.message.Message;
+import com.bank.module.message.MessageMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -19,6 +23,8 @@ import java.util.List;
 public class ApplyInfoServiceImpl implements ApplyInfoService {
 
     private final ApplyInfoMapper applyInfoMapper;
+    private final BankCardService bankCardService;
+    private final MessageMapper messageMapper;
 
     @Override
     @OperationLog(value = "提交申请", type = "add")
@@ -66,6 +72,59 @@ public class ApplyInfoServiceImpl implements ApplyInfoService {
         if (rows == 0) {
             throw new BusinessException("申请记录不存在");
         }
+    }
+
+    @Override
+    @OperationLog(value = "更新申请", type = "update")
+    public void update(Long id, ApplyDto dto) {
+        ApplyInfo apply = applyInfoMapper.selectById(id);
+        if (apply == null) {
+            throw new BusinessException("申请记录不存在");
+        }
+        apply.setProductId(dto.getProductId());
+        apply.setRealName(dto.getRealName());
+        apply.setPhone(dto.getPhone());
+        apply.setApplyType(dto.getApplyType());
+        applyInfoMapper.updateById(apply);
+    }
+
+    @Override
+    @OperationLog(value = "删除申请", type = "delete")
+    public void delete(Long id) {
+        ApplyInfo apply = applyInfoMapper.selectById(id);
+        if (apply == null) {
+            throw new BusinessException("申请记录不存在");
+        }
+        applyInfoMapper.deleteById(id); // MyBatis-Plus 逻辑删除
+    }
+
+    @Override
+    @OperationLog(value = "审批申请", type = "approve")
+    public void approve(Long id, Integer status, String remark, Long approverId) {
+        ApplyInfo apply = applyInfoMapper.selectById(id);
+        if (apply == null) {
+            throw new BusinessException("申请记录不存在");
+        }
+        apply.setStatus(status);
+        apply.setRemark(remark != null ? remark : "");
+        apply.setApproverId(approverId);
+        apply.setApproveTime(LocalDateTime.now());
+        applyInfoMapper.updateById(apply);
+
+        // 办卡审批通过 → 自动生成银行卡
+        if (status == 1 && apply.getApplyType() == 1) {
+            bankCardService.create(apply.getUserId(), apply.getId(), 2);
+        }
+
+        // 发送审核结果通知
+        Message msg = new Message();
+        msg.setUserId(apply.getUserId());
+        msg.setTitle(status == 1 ? "申请已通过" : "申请已驳回");
+        msg.setContent("您的" + (apply.getApplyType() == 1 ? "办卡" : "贷款") + "申请已"
+            + (status == 1 ? "通过" : "驳回") + (remark != null && !remark.isEmpty() ? "，原因：" + remark : ""));
+        msg.setType("approval");
+        msg.setIsRead(0);
+        messageMapper.insert(msg);
     }
 
     @Override

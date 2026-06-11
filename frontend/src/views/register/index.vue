@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
-const form = ref({ phone: '', password: '', nickName: '' })
+const form = ref({ phone: '', password: '', nickName: '', realName: '', idCard: '' })
 const loading = ref(false)
 
 async function handleRegister() {
@@ -29,6 +29,12 @@ async function handleRegister() {
       <el-form :model="form" label-width="80px">
         <el-form-item label="手机号">
           <el-input v-model="form.phone" placeholder="11位手机号" />
+        </el-form-item>
+        <el-form-item label="姓名">
+          <el-input v-model="form.realName" placeholder="真实姓名" />
+        </el-form-item>
+        <el-form-item label="身份证号">
+          <el-input v-model="form.idCard" placeholder="18位身份证号" maxlength="18" />
         </el-form-item>
         <el-form-item label="昵称">
           <el-input v-model="form.nickName" placeholder="昵称" />

@@ -38,7 +38,7 @@ public class ProductController {
      * 新增产品（管理员）
      */
     @PostMapping("/add")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> add(@Valid @RequestBody BankProduct product) {
         bankProductService.add(product);
         return Result.success();
@@ -48,7 +48,7 @@ public class ProductController {
      * 修改产品（管理员）
      */
     @PutMapping("/update")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> update(@Valid @RequestBody BankProduct product) {
         bankProductService.update(product);
         return Result.success();
@@ -58,7 +58,7 @@ public class ProductController {
      * 软删除产品（管理员）
      */
     @DeleteMapping("/delete/{id}")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> delete(@PathVariable Long id) {
         bankProductService.delete(id);
         return Result.success();
@@ -68,7 +68,7 @@ public class ProductController {
      * 回收站查询（管理员）
      */
     @GetMapping("/recycle")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<PageResult<BankProduct>> recycle(@Valid ProductQueryDto dto) {
         return Result.success(PageResult.of(bankProductService.recyclePage(dto)));
     }
@@ -77,7 +77,7 @@ public class ProductController {
      * 恢复产品（管理员）
      */
     @PostMapping("/recover/{id}")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> recover(@PathVariable Long id) {
         bankProductService.recover(id);
         return Result.success();
@@ -87,7 +87,7 @@ public class ProductController {
      * 物理删除（管理员）
      */
     @DeleteMapping("/wipe/{id}")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> wipe(@PathVariable Long id) {
         bankProductService.wipe(id);
         return Result.success();

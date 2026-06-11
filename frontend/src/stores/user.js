@@ -9,7 +9,13 @@ export const useUserStore = defineStore('user', () => {
   const roleId = ref(Number(localStorage.getItem('roleId') || 0))
 
   const isLoggedIn = computed(() => !!token.value)
-  const isAdmin = computed(() => roleId.value === 1)
+  // 5 层角色：1=运维 2=审计 3=业务 4=运营 5=用户
+  const isSysAdmin = computed(() => roleId.value === 1)
+  const isAuditor = computed(() => roleId.value === 2)
+  const isBizAdmin = computed(() => roleId.value === 3)
+  const isOperator = computed(() => roleId.value === 4)
+  // 可访问后台的角色（运维/审计/业务/运营）
+  const isAdmin = computed(() => [1, 2, 3, 4].includes(roleId.value))
 
   function setUser(userData) {
     token.value = userData.token
@@ -22,6 +28,11 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('nickName', userData.nickName)
     localStorage.setItem('phone', userData.phone)
     localStorage.setItem('roleId', userData.roleId)
+  }
+
+  function updateNickName(name) {
+    nickName.value = name
+    localStorage.setItem('nickName', name)
   }
 
   function logout() {
@@ -37,5 +48,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('roleId')
   }
 
-  return { token, userId, nickName, phone, roleId, isLoggedIn, isAdmin, setUser, logout }
+  return { token, userId, nickName, phone, roleId, isLoggedIn, isAdmin, isSysAdmin, isAuditor, isBizAdmin, isOperator, setUser, updateNickName, logout }
 })

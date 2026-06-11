@@ -30,7 +30,7 @@ public class BannerController {
      * 新增轮播（管理员）
      */
     @PostMapping("/add")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> add(@Valid @RequestBody Banner banner) {
         bannerService.add(banner);
         return Result.success();
@@ -40,7 +40,7 @@ public class BannerController {
      * 修改轮播（管理员）
      */
     @PutMapping("/update")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> update(@Valid @RequestBody Banner banner) {
         bannerService.update(banner);
         return Result.success();
@@ -50,7 +50,7 @@ public class BannerController {
      * 删除轮播（管理员）
      */
     @DeleteMapping("/delete/{id}")
-    @RequireRole("SUPER_ADMIN")
+    @RequireRole("BIZ_ADMIN")
     public Result<Void> delete(@PathVariable Long id) {
         bannerService.delete(id);
         return Result.success();

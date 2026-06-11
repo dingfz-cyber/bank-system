@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { submitApply } from '@/api/apply'
+import { setTransactionPassword } from '@/api/user'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -14,26 +15,27 @@ const form = ref({
   productId: Number(route.query.productId) || '',
   realName: '',
   phone: '',
-  applyType: isCard.value ? 1 : 2
+  applyType: isCard.value ? 1 : 2,
+  transactionPassword: ''
 })
 const loading = ref(false)
 
 async function handleSubmit() {
-  if (!form.value.realName || !form.value.phone) {
-    ElMessage.warning('请填写完整信息')
-    return
-  }
+  if (!form.value.realName || !form.value.phone) { ElMessage.warning('请填写完整信息'); return }
+  if (isCard.value && !form.value.transactionPassword) { ElMessage.warning('请设置6位数字交易密码'); return }
   loading.value = true
   try {
     form.value.productId = Number(form.value.productId)
     const res = await submitApply(form.value)
     if (res.code === 200) {
-      ElMessage.success('申请提交成功')
+      // 申请时一并设置交易密码
+      if (form.value.transactionPassword) {
+        await setTransactionPassword({ newPassword: form.value.transactionPassword })
+      }
+      ElMessage.success('申请提交成功' + (form.value.transactionPassword ? '，交易密码已设置' : ''))
       router.push({ name: 'home' })
     }
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
 }
 </script>
 
@@ -53,6 +55,9 @@ async function handleSubmit() {
         </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="form.phone" placeholder="请输入手机号" />
+        </el-form-item>
+        <el-form-item v-if="isCard" label="交易密码">
+          <el-input v-model="form.transactionPassword" type="password" placeholder="请设置6位数字交易密码（转账/缴费使用）" maxlength="6" show-password />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="loading" @click="handleSubmit">

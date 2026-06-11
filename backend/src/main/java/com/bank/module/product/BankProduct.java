@@ -22,6 +22,21 @@ public class BankProduct {
 
     private BigDecimal rate;
 
+    /** 起购金额 */
+    private BigDecimal minAmount;
+
+    /** 期限说明 */
+    private String term;
+
+    /** 风险等级：1=低 2=中 3=高 */
+    private Integer riskLevel;
+
+    /** 产品状态：0=正常 1=停售 */
+    private Integer productStatus;
+
+    /** 手续费说明 */
+    private String feeDesc;
+
     private String intro;
 
     private String imgPath;

@@ -23,6 +23,22 @@ public class User {
 
     private String nickName;
 
+    /** 真实姓名 */
+    private String realName;
+
+    /** 身份证号 */
+    private String idCard;
+
+    /** 交易密码（6位数字 BCrypt） */
+    @JsonIgnore
+    private String transactionPassword;
+
+    /** 连续登录失败次数 */
+    private Integer loginAttempts;
+
+    /** 账号锁定截止时间 */
+    private LocalDateTime lockedAt;
+
     private Long roleId;
 
     @TableLogic

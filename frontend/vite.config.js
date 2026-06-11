@@ -31,6 +31,34 @@ export default defineConfig({
       '/apply': {
         target: 'http://localhost:8080',
         changeOrigin: true
+      },
+      '/news': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/dashboard': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/card': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/transaction': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/payee': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/message': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/log': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
       }
     }
   }
