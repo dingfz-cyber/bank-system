@@ -4,10 +4,13 @@ import com.bank.common.NotLoginException;
 import com.bank.common.PageResult;
 import com.bank.common.Result;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.*;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,6 +42,29 @@ public class TransactionController {
         String remark = body.getOrDefault("remark", "").toString();
         transactionService.transfer(userId, fromCardId, toAccount, amount, transactionPassword, remark);
         return Result.success();
+    }
+
+    /**
+     * 导出交易流水 CSV
+     */
+    @GetMapping("/export")
+    public void export(@RequestParam(required = false) String startDate,
+                       @RequestParam(required = false) String endDate,
+                       HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Long userId = getUserId(request);
+        response.setContentType("text/csv;charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment;filename=transaction.csv");
+        // BOM for Excel UTF-8
+        response.getOutputStream().write(new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF});
+        PrintWriter w = response.getWriter();
+        w.println("时间,类型,金额,交易对方,备注");
+        transactionService.list(userId, 1, 10000, null, startDate, endDate).getRecords().forEach(r -> {
+            String type = switch (r.getType()) { case 1->"转账"; case 2->"缴费"; case 3->"理财"; case 4->"还款"; default->"-"; };
+            w.printf("%s,%s,%.2f,%s,%s\n", r.getTradeTime(), type, r.getAmount(),
+                r.getToAccount()!=null&&r.getToAccount().length()>=4?"****"+r.getToAccount().substring(r.getToAccount().length()-4):"-",
+                r.getRemark()!=null?r.getRemark():"");
+        });
+        w.flush();
     }
 
     /**

@@ -76,7 +76,7 @@ function scrollTop() {
     <div class="section-wrapper">
       <div class="quick-entries">
         <div class="quick-item" @click="goPage(1)"><span class="qi-icon">💰</span><span>存款理财</span></div>
-        <div class="quick-item" @click="goPage(2)"><span class="qi-icon">💳</span><span>信用卡</span></div>
+        <div class="quick-item" @click="goPage(2)"><span class="qi-icon">💳</span><span>银行卡</span></div>
         <div class="quick-item" @click="router.push('/payment')"><span class="qi-icon">📋</span><span>生活缴费</span></div>
         <div class="quick-item" @click="router.push('/calculator')"><span class="qi-icon">🧮</span><span>贷款计算</span></div>
         <div class="quick-item" @click="router.push('/branches')"><span class="qi-icon">📍</span><span>网点查询</span></div>
@@ -93,8 +93,8 @@ function scrollTop() {
         </el-card>
         <el-card class="category-card" shadow="hover" @click="goPage(2)">
           <el-badge :value="catCounts[2]||0" type="danger"><div class="card-icon">💳</div></el-badge>
-          <h3>信用卡</h3>
-          <p>消费优惠，便捷生活</p>
+          <h3>银行卡</h3>
+          <p>借记卡/信用卡/储蓄卡</p>
         </el-card>
         <el-card class="category-card" shadow="hover" @click="goPage(3)">
           <el-badge :value="catCounts[3]||0" type="warning"><div class="card-icon">🏢</div></el-badge>
@@ -276,7 +276,7 @@ function scrollTop() {
   flex: 1; display: flex; flex-direction: column;
 }
 .product-card img.product-img {
-  width: 100%; height: 150px; object-fit: cover; border-radius: 4px; flex-shrink: 0;
+  width: 100%; height: 180px; object-fit: cover; border-radius: 4px; flex-shrink: 0;
 }
 .product-card h3 {
   font-size: 15px; margin: 8px 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

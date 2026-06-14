@@ -7,6 +7,7 @@ export const useUserStore = defineStore('user', () => {
   const nickName = ref(localStorage.getItem('nickName') || '')
   const phone = ref(localStorage.getItem('phone') || '')
   const roleId = ref(Number(localStorage.getItem('roleId') || 0))
+  const points = ref(Number(localStorage.getItem('points') || 0))
 
   const isLoggedIn = computed(() => !!token.value)
   // 5 层角色：1=运维 2=审计 3=业务 4=运营 5=用户
@@ -23,11 +24,13 @@ export const useUserStore = defineStore('user', () => {
     nickName.value = userData.nickName
     phone.value = userData.phone
     roleId.value = userData.roleId
+    points.value = userData.points || 0
     localStorage.setItem('token', userData.token)
     localStorage.setItem('userId', userData.id)
     localStorage.setItem('nickName', userData.nickName)
     localStorage.setItem('phone', userData.phone)
     localStorage.setItem('roleId', userData.roleId)
+    localStorage.setItem('points', userData.points || 0)
   }
 
   function updateNickName(name) {
@@ -41,12 +44,14 @@ export const useUserStore = defineStore('user', () => {
     nickName.value = ''
     phone.value = ''
     roleId.value = 0
+    points.value = 0
     localStorage.removeItem('token')
     localStorage.removeItem('userId')
     localStorage.removeItem('nickName')
     localStorage.removeItem('phone')
     localStorage.removeItem('roleId')
+    localStorage.removeItem('points')
   }
 
-  return { token, userId, nickName, phone, roleId, isLoggedIn, isAdmin, isSysAdmin, isAuditor, isBizAdmin, isOperator, setUser, updateNickName, logout }
+  return { token, userId, nickName, phone, roleId, points, isLoggedIn, isAdmin, isSysAdmin, isAuditor, isBizAdmin, isOperator, setUser, updateNickName, logout }
 })

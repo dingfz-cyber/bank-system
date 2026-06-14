@@ -39,6 +39,9 @@ public class User {
     /** 账号锁定截止时间 */
     private LocalDateTime lockedAt;
 
+    /** 积分 */
+    private Integer points;
+
     private Long roleId;
 
     @TableLogic

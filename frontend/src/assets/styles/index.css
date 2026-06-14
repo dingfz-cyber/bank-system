@@ -15,10 +15,67 @@
   --color-border: #e4e7ed;
   --color-bg: #f5f7fa;
   --color-white: #fff;
+  --color-card: #fff;
   --font-family: 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
   --header-height: 60px;
   --footer-height: 60px;
 }
+
+/* 深色模式 */
+html.dark {
+  --color-text-primary: #e5eaf3;
+  --color-text-regular: #a3a6ad;
+  --color-text-secondary: #8d9095;
+  --color-border: #4c4d4f;
+  --color-bg: #141414;
+  --color-white: #1d1e1f;
+  --color-card: #1d1e1f;
+}
+html.dark body { background: #141414; color: #e5eaf3; }
+html.dark .app-header { background: #1d1e1f; border-color: #4c4d4f; }
+html.dark .app-footer { background: #1d1e1f; border-color: #4c4d4f; }
+html.dark .el-card { background: #1d1e1f; border-color: #4c4d4f; }
+html.dark .el-table { --el-table-bg-color: #1d1e1f; --el-table-tr-bg-color: #1d1e1f; --el-table-header-bg-color: #262727; }
+html.dark .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell { background: #262727; }
+html.dark .el-menu { background: #1d1e1f; }
+html.dark .el-input__wrapper { background: #262727; }
+html.dark .bank-card.card-debit { background: linear-gradient(135deg,#0a2a2a,#134a3d); }
+html.dark .bank-card.card-credit { background: linear-gradient(135deg,#15102a,#2a1640); }
+html.dark .uc-sidebar { background: #1d1e1f; }
+html.dark .uc-stat { background: #1d1e1f; }
+html.dark .stat-card { background: #1d1e1f; }
+html.dark .product-card { background: #1d1e1f; border-color: #4c4d4f; }
+html.dark .img-box { background: #262727; }
+html.dark .el-dialog { background: #1d1e1f; }
+html.dark .el-pagination button { background: #262727; color: #a3a6ad; }
+html.dark .el-tabs__header { border-color: #4c4d4f; }
+html.dark .el-tabs__item { color: #a3a6ad; }
+html.dark .el-descriptions__body { background: #1d1e1f; }
+html.dark .el-descriptions__label { background: #262727; }
+html.dark .form-page .el-card { background: #1d1e1f; }
+html.dark .news-item { background: #1d1e1f; }
+html.dark .category-card { background: #1d1e1f; border-color: #4c4d4f; }
+html.dark .quick-item { background: #262727; }
+html.dark .section-wrapper .category-card h3 { color: #e5eaf3; }
+html.dark .section-wrapper .category-card p { color: #a3a6ad; }
+html.dark .product-card h3 { color: #e5eaf3; }
+html.dark .product-card .intro { color: #8d9095; }
+html.dark .news-title { color: #e5eaf3; }
+html.dark .news-summary { color: #a3a6ad; }
+html.dark .section-title { color: #e5eaf3; }
+html.dark .page-title { color: #e5eaf3; }
+html.dark .card-title { color: #e5eaf3; }
+html.dark .el-divider__text { background: #1d1e1f; }
+html.dark .el-select .el-input__wrapper { background: #262727; }
+html.dark .el-input-number .el-input__wrapper { background: #262727; }
+html.dark .el-checkbox__label { color: #a3a6ad; }
+html.dark .el-radio__label { color: #a3a6ad; }
+html.dark .el-form-item__label { color: #a3a6ad; }
+html.dark .el-step__title { color: #a3a6ad; }
+html.dark .el-empty__description { color: #8d9095; }
+html.dark .el-popover { background: #1d1e1f; border-color: #4c4d4f; }
+html.dark .el-alert--info { background: #262727; border-color: #4c4d4f; }
+html.dark .app-main { background: #141414; }
 
 /* Reset */
 *,

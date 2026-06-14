@@ -11,7 +11,7 @@ export const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE || '/bankImg/'
 // 产品分类映射
 export const PRODUCT_TYPE_MAP = {
   1: '个人业务',
-  2: '信用卡',
+  2: '银行卡',
   3: '公司金融',
   4: '普惠金融'
 }

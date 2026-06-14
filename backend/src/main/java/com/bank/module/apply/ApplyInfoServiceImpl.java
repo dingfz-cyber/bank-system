@@ -9,6 +9,8 @@ import com.bank.module.apply.dto.ApplyDto;
 import com.bank.module.card.BankCardService;
 import com.bank.module.message.Message;
 import com.bank.module.message.MessageMapper;
+import com.bank.module.product.BankProduct;
+import com.bank.module.product.BankProductMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,7 @@ public class ApplyInfoServiceImpl implements ApplyInfoService {
     private final ApplyInfoMapper applyInfoMapper;
     private final BankCardService bankCardService;
     private final MessageMapper messageMapper;
+    private final BankProductMapper bankProductMapper;
 
     @Override
     @OperationLog(value = "提交申请", type = "add")
@@ -111,9 +114,16 @@ public class ApplyInfoServiceImpl implements ApplyInfoService {
         apply.setApproveTime(LocalDateTime.now());
         applyInfoMapper.updateById(apply);
 
-        // 办卡审批通过 → 自动生成银行卡
+        // 办卡审批通过 → 根据产品判断卡类型
         if (status == 1 && apply.getApplyType() == 1) {
-            bankCardService.create(apply.getUserId(), apply.getId(), 2);
+            BankProduct product = bankProductMapper.selectById(apply.getProductId());
+            int cardType = 2; // 默认信用卡
+            if (product != null) {
+                String name = product.getProductName();
+                if (name.contains("借记")) cardType = 1;  // 借记卡
+                else if (name.contains("储蓄")) cardType = 1;
+            }
+            bankCardService.create(apply.getUserId(), apply.getId(), cardType);
         }
 
         // 发送审核结果通知

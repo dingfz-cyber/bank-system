@@ -28,7 +28,10 @@ async function readAll() { await readAllMessages(); unread.value = 0; const res 
 function handleLogout() { userStore.logout(); router.push({ name: 'home' }) }
 function goLogin() { router.push({ name: 'login' }) }
 
-onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000) })
+const isDark = ref(localStorage.getItem('darkMode') === 'true')
+function toggleDark() { isDark.value = !isDark.value; document.documentElement.classList.toggle('dark', isDark.value); localStorage.setItem('darkMode', isDark.value) }
+
+onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000); if(localStorage.getItem('darkMode')==='true') document.documentElement.classList.add('dark') })
 </script>
 
 <template>
@@ -39,7 +42,7 @@ onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000) })
         <nav class="nav-menu">
           <router-link to="/" class="nav-item">首页</router-link>
           <router-link to="/personal" class="nav-item">个人业务</router-link>
-          <router-link to="/credit" class="nav-item">信用卡</router-link>
+          <router-link to="/credit" class="nav-item">银行卡</router-link>
           <router-link to="/company" class="nav-item">公司金融</router-link>
           <router-link to="/puhui" class="nav-item">普惠金融</router-link>
           <router-link to="/transfer" class="nav-item">转账汇款</router-link>
@@ -51,7 +54,21 @@ onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000) })
       </div>
       <div class="header-right">
         <template v-if="userStore.isLoggedIn">
-          <span class="user-info">欢迎，{{ userStore.nickName }}</span>
+          <span class="user-info">欢迎，{{ userStore.nickName }}
+            <el-popover placement="bottom" :width="260" trigger="click">
+              <template #reference>
+                <span style="color:#e6a23c;font-size:12px;cursor:pointer">⭐{{ userStore.points || 0 }}</span>
+              </template>
+              <div style="font-size:13px;line-height:2">
+                <b>积分规则</b>
+                <div>📝 注册账号 +50</div>
+                <div>🔐 每日登录 +5</div>
+                <div>💳 办理业务 +10</div>
+                <el-divider style="margin:8px 0"/>
+                <div style="color:#909399">积分可兑换手续费减免等权益</div>
+              </div>
+            </el-popover>
+          </span>
 
           <!-- 消息通知 -->
           <el-popover placement="bottom" :width="340" trigger="click" @show="loadMessages" :persistent="true" :hide-after="0">
@@ -76,6 +93,7 @@ onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000) })
           <el-button v-if="userStore.isAdmin" type="warning" size="small" @click="router.push('/admin')">
             后台管理
           </el-button>
+          <span @click="toggleDark" style="cursor:pointer;font-size:18px;margin-right:8px" :title="isDark?'切换亮色':'切换深色'">{{ isDark ? '☀️' : '🌙' }}</span>
           <el-button type="primary" size="small" @click="handleLogout">退出</el-button>
         </template>
         <template v-else>

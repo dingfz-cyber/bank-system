@@ -18,7 +18,7 @@ const routes = [
     path: '/credit',
     name: 'credit',
     component: () => import('@/views/credit/index.vue'),
-    meta: { title: '信用卡' }
+    meta: { title: '银行卡' }
   },
   {
     path: '/company',

@@ -18,7 +18,7 @@ const imageBaseUrl = IMAGE_BASE_URL
 const page = ref(1)
 const total = ref(0)
 const keyword = ref('')
-const sortOrder = ref(0) // 0=默认 1=利率升 2=利率降 3=最新上线
+const sortOrder = ref(0)
 const compareSet = ref(new Set())
 const showCompare = ref(false)
 function toggleCompare(id) {
@@ -40,38 +40,19 @@ async function fetchData() {
     const params = { productType: props.type, page: page.value, pageSize: 12 }
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
     const res = await getProductList(params)
-    if (res.code === 200) {
-      products.value = res.data.list
-      total.value = res.data.total
-    }
-  } finally {
-    loading.value = false
-  }
+    if (res.code === 200) { products.value = res.data.list; total.value = res.data.total }
+  } finally { loading.value = false }
 }
 
-function handleSearch() {
-  page.value = 1
-  fetchData()
-}
+function handleSearch() { page.value = 1; fetchData() }
+function handleClear() { keyword.value = ''; page.value = 1; fetchData() }
 
-function handleClear() {
-  keyword.value = ''
-  page.value = 1
-  fetchData()
-}
-
-function getImageUrl(path) {
-  return path ? `${imageBaseUrl}${path}` : ''
-}
+function getImageUrl(path) { return path ? `${imageBaseUrl}${path}` : '' }
 
 function applyProduct(product) {
   if (!userStore.isLoggedIn) {
-    ElMessageBox.confirm('请先登录后再申请', '提示', {
-      confirmButtonText: '去登录',
-      cancelButtonText: '取消'
-    }).then(() => {
-      router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
-    }).catch(() => {})
+    ElMessageBox.confirm('请先登录后再申请', '提示', { confirmButtonText: '去登录', cancelButtonText: '取消' })
+      .then(() => router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })).catch(() => {})
     return
   }
   const target = product.productType === 2 ? '/apply/card' : '/apply/loan'
@@ -86,17 +67,8 @@ watch(() => props.type, fetchData)
   <div class="product-list">
     <div style="margin-bottom:8px;color:#909399;font-size:13px" v-if="!loading">共 {{ total }} 款产品</div>
     <div class="search-bar">
-      <el-input
-        v-model="keyword"
-        placeholder="搜索产品名称..."
-        clearable
-        @clear="handleClear"
-        @keyup.enter="handleSearch"
-        style="max-width: 300px"
-      >
-        <template #append>
-          <el-button @click="handleSearch">搜索</el-button>
-        </template>
+      <el-input v-model="keyword" placeholder="搜索产品名称..." clearable @clear="handleClear" @keyup.enter="handleSearch" style="max-width:300px">
+        <template #append><el-button @click="handleSearch">搜索</el-button></template>
       </el-input>
       <el-select v-model="sortOrder" style="width:130px;margin-left:12px" @change="handleSearch">
         <el-option :value="0" label="默认排序" />
@@ -105,10 +77,10 @@ watch(() => props.type, fetchData)
         <el-option :value="3" label="最新上线" />
       </el-select>
     </div>
-    <el-row :gutter="20" v-loading="loading">
-      <el-col :span="6" v-for="p in sortedProducts" :key="p.id" class="product-col">
-        <el-card class="product-card" shadow="hover" @click="router.push({name:'productDetail',query:{id:p.id}})" style="cursor:pointer">
-          <img :src="getImageUrl(p.imgPath)" class="product-img" />
+    <el-row :gutter="20" v-loading="loading" type="flex">
+      <el-col :span="6" v-for="p in sortedProducts" :key="p.id" class="product-col" style="display:flex">
+        <el-card class="product-card" shadow="hover" @click="router.push({name:'productDetail',query:{id:p.id}})" style="cursor:pointer;width:100%">
+          <div class="img-box"><img :src="getImageUrl(p.imgPath)" class="product-img" /></div>
           <h3>{{ p.productName }} <el-tag v-if="p.productStatus===1" type="info" size="small">停售</el-tag></h3>
           <p class="rate" v-if="p.rate > 0">{{ p.rate }}%</p>
           <p class="intro">{{ p.intro }}</p>
@@ -121,14 +93,7 @@ watch(() => props.type, fetchData)
       </el-col>
       <el-empty v-if="!loading && !products.length" description="暂无产品" />
     </el-row>
-    <el-pagination
-      v-if="total > 0"
-      v-model:current-page="page"
-      :page-size="12"
-      :total="total"
-      layout="prev, pager, next"
-      class="pagination"
-    />
+    <el-pagination v-if="total > 0" v-model:current-page="page" :page-size="12" :total="total" layout="prev, pager, next" class="pagination" />
 
     <!-- 对比栏 -->
     <div v-if="compareSet.size > 0" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;padding:12px 24px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:100;display:flex;align-items:center;gap:16px">
@@ -140,9 +105,7 @@ watch(() => props.type, fetchData)
     <!-- 对比弹窗 -->
     <el-dialog v-model="showCompare" title="产品对比" width="90%">
       <el-table :data="compareProducts" stripe>
-        <el-table-column label="图片" width="100">
-          <template #default="{ row }"><img :src="getImageUrl(row.imgPath)" style="width:80px;height:50px;object-fit:cover;border-radius:4px" /></template>
-        </el-table-column>
+        <el-table-column label="图片" width="100"><template #default="{ row }"><img :src="getImageUrl(row.imgPath)" style="width:80px;height:50px;object-fit:cover;border-radius:4px" /></template></el-table-column>
         <el-table-column prop="productName" label="产品名" width="160" />
         <el-table-column label="年化利率"><template #default="{ row }">{{ row.rate }}%</template></el-table-column>
         <el-table-column label="起购金额"><template #default="{ row }">¥{{ row.minAmount || 0 }}</template></el-table-column>
@@ -153,3 +116,9 @@ watch(() => props.type, fetchData)
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.search-bar { margin-bottom: 16px; display: flex; }
+.img-box { width: 100%; height: 180px; background: #f5f7fa; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+.product-img { width: 100%; height: 100%; object-fit: cover; }
+</style>

@@ -80,6 +80,9 @@ public class UserServiceImpl implements UserService {
         user.setLockedAt(null);
         userMapper.updateById(user);
 
+        // 登陆积分 +5
+        user.setPoints(user.getPoints()==null?5:user.getPoints()+5);
+
         // 记录登录
         LoginRecord lr = new LoginRecord();
         lr.setUserId(user.getId()); lr.setPhone(user.getPhone());
@@ -89,7 +92,7 @@ public class UserServiceImpl implements UserService {
         String token = jwtUtil.generateToken(user.getId(), user.getPhone(), user.getRoleId());
         UserVo vo = new UserVo();
         vo.setId(user.getId()); vo.setPhone(user.getPhone());
-        vo.setNickName(user.getNickName()); vo.setRoleId(user.getRoleId());
+        vo.setNickName(user.getNickName()); vo.setRoleId(user.getRoleId()); vo.setPoints(user.getPoints());
         vo.setToken(token);
         return vo;
     }
@@ -166,7 +169,7 @@ public class UserServiceImpl implements UserService {
         String token = jwtUtil.generateToken(user.getId(), user.getPhone(), user.getRoleId());
         UserVo vo = new UserVo();
         vo.setId(user.getId()); vo.setPhone(user.getPhone());
-        vo.setNickName(user.getNickName()); vo.setRoleId(user.getRoleId());
+        vo.setNickName(user.getNickName()); vo.setRoleId(user.getRoleId()); vo.setPoints(user.getPoints());
         vo.setToken(token);
         return vo;
     }
