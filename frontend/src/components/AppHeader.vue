@@ -55,7 +55,7 @@ onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000); if(localStorag
       <div class="header-right">
         <template v-if="userStore.isLoggedIn">
           <span class="user-info">欢迎，{{ userStore.nickName }}
-            <el-popover placement="bottom" :width="260" trigger="click">
+            <el-popover v-if="userStore.roleId === 5" placement="bottom" :width="260" trigger="click">
               <template #reference>
                 <span style="color:#e6a23c;font-size:12px;cursor:pointer">⭐{{ userStore.points || 0 }}</span>
               </template>
