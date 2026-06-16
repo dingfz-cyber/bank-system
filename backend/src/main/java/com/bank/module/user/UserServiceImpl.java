@@ -3,6 +3,8 @@ package com.bank.module.user;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.bank.common.BusinessException;
 import com.bank.config.JwtUtil;
+import com.bank.module.points.PointsRecord;
+import com.bank.module.points.PointsRecordMapper;
 import com.bank.module.user.dto.LoginDto;
 import com.bank.module.user.dto.RegisterDto;
 import com.bank.module.user.dto.UserVo;
@@ -23,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
     private final LoginRecordMapper loginRecordMapper;
+    private final PointsRecordMapper pointsRecordMapper;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
@@ -42,8 +45,10 @@ public class UserServiceImpl implements UserService {
         user.setNickName(dto.getNickName());
         user.setRealName(dto.getRealName());
         user.setIdCard(dto.getIdCard());
-        user.setRoleId(5L); // 默认普通用户
+        user.setRoleId(5L);
+        user.setPoints(50);
         userMapper.insert(user);
+        PointsRecord pr=new PointsRecord(); pr.setUserId(user.getId()); pr.setPoints(50); pr.setReason("注册奖励"); pointsRecordMapper.insert(pr);
     }
 
     @Override
@@ -83,6 +88,7 @@ public class UserServiceImpl implements UserService {
         // 普通用户每日登陆积分 +5
         if (user.getRoleId() == 5) {
             user.setPoints(user.getPoints()==null?5:user.getPoints()+5);
+            PointsRecord pr=new PointsRecord(); pr.setUserId(user.getId()); pr.setPoints(5); pr.setReason("每日登录"); pointsRecordMapper.insert(pr);
         }
 
         // 记录登录

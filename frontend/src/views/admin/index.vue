@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   getProductList, addProduct, updateProduct, deleteProduct,
   getRecycleList, recoverProduct, wipeProduct
 } from '@/api/product'
 import { getAuditLog, getMonitor } from '@/api/log'
+import request from '@/api/request'
+import { getAdminGoods, addGoods, updateGoods, deleteGoods } from '@/api/points'
 import { listUsers, lockUser, unlockUser, adminResetPassword } from '@/api/user'
 import { getStats } from '@/api/dashboard'
 import { getBannerList, addBanner, updateBanner, deleteBanner } from '@/api/banner'
@@ -325,10 +327,31 @@ async function handleDeleteNews(id) {
   fetchNews()
 }
 
+// ========== 积分商城管理 ==========
+const pointGoods = ref([]); const pointForm=ref({name:'',cost:100,image:'',stock:50}); const pointDlg=ref(false)
+const familyApps=ref([])
+async function fetchFamilyApps(){const r=await request.get('/family/admin/pending');if(r.code===200)familyApps.value=r.data}
+async function handleApproveFamily(fid,status){await request.post('/family/admin/approve/'+fid+'?status='+status);ElMessage.success(status===1?'已通过':'已驳回');fetchFamilyApps()}
+
+// 数据库备份恢复
+const backups=ref([]); const backupLoading=ref(false); const showRestore=ref(false); const restoreFile=ref('')
+async function fetchBackups(){const r=await request.get('/db/backups');if(r.code===200)backups.value=r.data}
+async function doBackup(){backupLoading.value=true;const r=await request.post('/db/backup');backupLoading.value=false;if(r.code===200){ElMessage.success('备份成功: '+r.data); fetchBackups()}else ElMessage.error(r.msg)}
+async function doRestore(name){await ElMessageBox.confirm('确定恢复 '+name+'？当前数据将被覆盖！','危险操作',{type:'error',confirmButtonClass:'el-button--danger'});const r=await request.post('/db/restore',{name});if(r.code===200)ElMessage.success('恢复成功')}
+
+const sysInfo=ref({})
+const memPercent=computed(()=>{const u=(sysInfo.value.usedMemory||'').toString();const t=(sysInfo.value.totalMemory||'').toString();if(!u||!t)return 0;return Math.round(parseInt(u)/parseInt(t)*100)})
+async function fetchSysMonitor(){const r=await request.get('/system/monitor');if(r.code===200)sysInfo.value=r.data}
+async function fetchPointGoods(){ const r=await getAdminGoods(); if(r.code===200) pointGoods.value=r.data }
+function openAddPoint(){ pointForm.value={name:'',cost:100,image:'',stock:50}; pointDlg.value=true }
+function openEditPoint(g){ pointForm.value={...g}; pointDlg.value=true }
+async function savePoint(){ if(pointForm.value.id){ await updateGoods(pointForm.value.id,pointForm.value) }else{ await addGoods(pointForm.value) }; pointDlg.value=false; fetchPointGoods(); ElMessage.success('已保存') }
+async function handleDeletePoint(id){ await ElMessageBox.confirm('确定删除?'); await deleteGoods(id); fetchPointGoods(); ElMessage.success('已删除') }
+
 // ========== Tab 切换 ==========
 const auditLogs = ref([])
 const monitorData = ref({ loginRecords: [], totalLogins: 0 })
-async function fetchMonitor() {
+async function fetchLogMonitor() {
   const res = await getMonitor(); if (res.code === 200) monitorData.value = res.data
 }
 async function fetchAuditLog() {
@@ -340,12 +363,16 @@ function onTabChange(tab) {
   localStorage.setItem('adminTab', tab)
   if (tab === 'dashboard') fetchStats()
   else if (tab === 'audit') fetchAuditLog()
-  else if (tab === 'monitor') fetchMonitor()
+  else if (tab === 'opsMonitor') fetchSysMonitor()
   else if (tab === 'users') fetchUsers()
   else if (tab === 'product') fetchProducts()
   else if (tab === 'banner') fetchBanners()
   else if (tab === 'apply') fetchApplies()
   else if (tab === 'news') fetchNews()
+  else if (tab === 'points') fetchPointGoods()
+  else if (tab === 'familyApproval') fetchFamilyApps()
+  else if (tab === 'dbmanage') fetchBackups()
+  else if (tab === 'opsMonitor') fetchSysMonitor()
   else if (tab === 'recycle') { if (userStore.roleId === 3) fetchRecycle(); if (userStore.roleId === 4) fetchApplyRecycle() }
 }
 
@@ -353,12 +380,16 @@ onMounted(() => {
   const tab = activeTab.value
   if (tab === 'dashboard') fetchStats()
   else if (tab === 'audit') fetchAuditLog()
-  else if (tab === 'monitor') fetchMonitor()
+  else if (tab === 'opsMonitor') fetchSysMonitor()
   else if (tab === 'users') fetchUsers()
   else if (tab === 'product') fetchProducts()
   else if (tab === 'banner') fetchBanners()
   else if (tab === 'apply') fetchApplies()
   else if (tab === 'news') fetchNews()
+  else if (tab === 'points') fetchPointGoods()
+  else if (tab === 'familyApproval') fetchFamilyApps()
+  else if (tab === 'dbmanage') fetchBackups()
+  else if (tab === 'opsMonitor') fetchSysMonitor()
   else if (tab === 'recycle') { if (userStore.roleId === 3) fetchRecycle(); if (userStore.roleId === 4) fetchApplyRecycle() }
   lastRefresh.value = new Date().toLocaleTimeString()
 })
@@ -371,75 +402,52 @@ onMounted(() => {
       <!-- 数据概览 -->
       <el-tab-pane v-if="[1,3,4].includes(userStore.roleId)" label="数据概览" name="dashboard">
         <el-alert :title="'欢迎回来，' + userStore.nickName + ' — ' + ({1:'系统运维管理员',3:'业务配置管理员',4:'普通运营管理员'}[userStore.roleId]||'管理员') + '  |  ' + new Date().toLocaleDateString()" type="success" :closable="false" style="margin-bottom:12px" />
-        <div class="toolbar" style="display:flex;justify-content:flex-end">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
           <el-button size="small" @click="fetchStats">🔄 刷新数据</el-button>
           <span v-if="lastRefresh" style="font-size:12px;color:#999;margin-left:8px">上次刷新: {{ lastRefresh }}</span>
         </div>
-        <el-row :gutter="20">
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-blue">{{ stats.userCount || 0 }}</div>
-              <div class="stat-label">用户总数</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-green">{{ stats.productCount || 0 }}</div>
-              <div class="stat-label">产品总数</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-orange">{{ stats.todayApplyCount || 0 }}</div>
-              <div class="stat-label">今日申请</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-red">{{ stats.pendingCount || 0 }}</div>
-              <div class="stat-label">待审核</div>
-            </el-card>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" style="margin-top:20px">
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-green">{{ stats.approvedCount || 0 }}</div>
-              <div class="stat-label">已通过</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-red">{{ stats.rejectedCount || 0 }}</div>
-              <div class="stat-label">已拒绝</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-blue">{{ ((stats.approvedCount + stats.rejectedCount) > 0 ? Math.round(stats.approvedCount / (stats.approvedCount + stats.rejectedCount) * 100) : 0) }}%</div>
-              <div class="stat-label">审核通过率</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="stat-card" :body-style="{ textAlign: 'center' }">
-              <div class="stat-value stat-blue">{{ stats.newsCount || 0 }}</div>
-              <div class="stat-label">新闻公告</div>
-            </el-card>
+
+        <!-- 核心指标 -->
+        <div class="dash-section-title">核心指标</div>
+        <el-row :gutter="16">
+          <el-col :span="6" v-for="(s,i) in [
+            {v:stats.userCount||0,l:'用户总数',c:'#409eff',icon:'👥'},{v:stats.productCount||0,l:'产品总数',c:'#67c23a',icon:'📦'},
+            {v:stats.todayApplyCount||0,l:'今日申请',c:'#e6a23c',icon:'📋'},{v:stats.pendingCount||0,l:'待审核',c:'#f56c6c',icon:'⏳'}
+          ]" :key="i">
+            <div class="dash-card" :style="{borderTopColor:s.c}"><div class="dash-card-num" :style="{color:s.c}">{{s.v}}</div><div class="dash-card-icon">{{s.icon}}</div><div class="dash-card-label">{{s.l}}</div></div>
           </el-col>
         </el-row>
 
-        <!-- 产品分类统计 -->
-        <el-row :gutter="20" style="margin-top:16px">
-          <el-col :span="6"><el-card shadow="hover" style="text-align:center"><div style="font-size:18px;font-weight:bold;color:#67c23a">{{ stats.productType1Count||0 }}</div><div style="font-size:12px;color:#909399">个人业务产品</div></el-card></el-col>
-          <el-col :span="6"><el-card shadow="hover" style="text-align:center"><div style="font-size:18px;font-weight:bold;color:#409eff">{{ stats.productType2Count||0 }}</div><div style="font-size:12px;color:#909399">信用卡产品</div></el-card></el-col>
-          <el-col :span="6"><el-card shadow="hover" style="text-align:center"><div style="font-size:18px;font-weight:bold;color:#e6a23c">{{ stats.productType3Count||0 }}</div><div style="font-size:12px;color:#909399">公司金融产品</div></el-card></el-col>
-          <el-col :span="6"><el-card shadow="hover" style="text-align:center"><div style="font-size:18px;font-weight:bold;color:#f56c6c">{{ stats.productType4Count||0 }}</div><div style="font-size:12px;color:#909399">普惠金融产品</div></el-card></el-col>
+        <!-- 申请统计 -->
+        <div class="dash-section-title" style="margin-top:16px">申请统计</div>
+        <el-row :gutter="16">
+          <el-col :span="6" v-for="(s,i) in [
+            {v:stats.approvedCount||0,l:'已通过',c:'#67c23a'},{v:stats.rejectedCount||0,l:'已拒绝',c:'#f56c6c'},
+            {v:((stats.approvedCount+stats.rejectedCount)>0?Math.round(stats.approvedCount/(stats.approvedCount+stats.rejectedCount)*100):0)+'%',l:'通过率',c:'#409eff'},{v:stats.newsCount||0,l:'新闻公告',c:'#909399'}
+          ]" :key="i">
+            <div class="dash-card dash-card-sm" :style="{borderTopColor:s.c}"><div class="dash-card-num-sm" :style="{color:s.c}">{{s.v}}</div><div class="dash-card-label">{{s.l}}</div></div>
+          </el-col>
         </el-row>
 
-        <!-- 银行卡/交易 -->
-        <el-row :gutter="20" style="margin-top:12px">
-          <el-col :span="6"><el-card shadow="hover" style="text-align:center"><div style="font-size:18px;font-weight:bold;color:#409eff">{{ stats.cardCount||0 }}</div><div style="font-size:12px;color:#909399">银行卡</div></el-card></el-col>
-          <el-col :span="6"><el-card shadow="hover" style="text-align:center"><div style="font-size:18px;font-weight:bold;color:#67c23a">{{ stats.transactionCount||0 }}</div><div style="font-size:12px;color:#909399">交易记录</div></el-card></el-col>
+        <!-- 产品分布 -->
+        <div class="dash-section-title" style="margin-top:16px">产品分布</div>
+        <el-row :gutter="16">
+          <el-col :span="6" v-for="(s,i) in [
+            {v:stats.productType1Count||0,l:'个人业务',c:'#67c23a'},{v:stats.productType2Count||0,l:'银行卡',c:'#409eff'},
+            {v:stats.productType3Count||0,l:'公司金融',c:'#e6a23c'},{v:stats.productType4Count||0,l:'普惠金融',c:'#f56c6c'}
+          ]" :key="i">
+            <div class="dash-card dash-card-sm" :style="{borderTopColor:s.c}"><div class="dash-card-num-sm" :style="{color:s.c}">{{s.v}}</div><div class="dash-card-label">{{s.l}}</div></div>
+          </el-col>
+        </el-row>
+
+        <!-- 系统概况 -->
+        <div class="dash-section-title" style="margin-top:16px">系统概况</div>
+        <el-row :gutter="16">
+          <el-col :span="6" v-for="(s,i) in [
+            {v:stats.cardCount||0,l:'银行卡',c:'#409eff'},{v:stats.transactionCount||0,l:'交易记录',c:'#67c23a'}
+          ]" :key="i">
+            <div class="dash-card dash-card-sm" :style="{borderTopColor:s.c}"><div class="dash-card-num-sm" :style="{color:s.c}">{{s.v}}</div><div class="dash-card-label">{{s.l}}</div></div>
+          </el-col>
         </el-row>
       </el-tab-pane>
 
@@ -489,13 +497,52 @@ onMounted(() => {
         </el-card>
       </el-tab-pane>
 
+      <el-tab-pane v-if="userStore.roleId === 1" label="系统监控" name="opsMonitor">
+        <div class="dash-section-title">系统状态概览</div>
+        <el-row :gutter="16">
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-icon">☕</div><div class="dash-card-num" style="color:#409eff">{{sysInfo.javaVersion||'-'}}</div><div class="dash-card-label">Java 版本</div></div></el-col>
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-icon">⏱</div><div class="dash-card-num" style="color:#67c23a">{{sysInfo.uptime||'-'}}</div><div class="dash-card-label">运行时长</div></div></el-col>
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-icon">💻</div><div class="dash-card-num" style="color:#e6a23c">{{sysInfo.processors||'-'}}</div><div class="dash-card-label">CPU 核心数</div></div></el-col>
+        </el-row>
+
+        <div class="dash-section-title" style="margin-top:16px">内存使用</div>
+        <el-row :gutter="16">
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-num-sm" style="color:#409eff">{{sysInfo.totalMemory||'-'}}</div><div class="dash-card-label">总内存</div></div></el-col>
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-num-sm" style="color:#e6a23c">{{sysInfo.usedMemory||'-'}}</div><div class="dash-card-label">已用内存</div></div></el-col>
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-num-sm" style="color:#67c23a">{{sysInfo.freeMemory||'-'}}</div><div class="dash-card-label">空闲内存</div></div></el-col>
+        </el-row>
+        <el-progress :percentage="memPercent" :color="memPercent>80?'#f56c6c':'#409eff'" :stroke-width="16" style="margin-top:12px"/>
+
+        <div class="dash-section-title" style="margin-top:16px">数据库信息</div>
+        <el-row :gutter="16">
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-icon">🗄</div><div class="dash-card-num-sm" style="color:#409eff">{{sysInfo.dbVersion||'-'}}</div><div class="dash-card-label">MySQL 版本</div></div></el-col>
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-icon">📊</div><div class="dash-card-num-sm" style="color:#67c23a">{{sysInfo.tableCount||'-'}}</div><div class="dash-card-label">数据表数量</div></div></el-col>
+          <el-col :span="8"><div class="dash-card"><div class="dash-card-icon">📝</div><div class="dash-card-num-sm" style="color:#e6a23c">{{sysInfo.totalRows||'-'}}</div><div class="dash-card-label">总数据行数</div></div></el-col>
+        </el-row>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px">
+          <span style="font-size:12px;color:#999">当前时间: {{sysInfo.currentTime||'-'}}</span>
+          <el-button size="small" @click="fetchSysMonitor" style="margin-left:12px">🔄 刷新</el-button>
+        </div>
+      </el-tab-pane>
+
       <el-tab-pane v-if="userStore.roleId === 1" label="数据库管理" name="dbmanage">
         <el-card><template #header>数据库备份与恢复</template>
-          <el-alert type="warning" :closable="false" title="演示说明" description="生产环境中通过定时任务自动备份，运维管理员可执行手动备份和恢复操作。本演示系统模拟界面。" style="margin-bottom:16px" />
-          <el-button type="primary" disabled>手动备份</el-button>
-          <el-button type="danger" disabled style="margin-left:8px">数据恢复</el-button>
-          <p style="margin-top:12px;font-size:12px;color:#909399">最近备份：演示系统中无实际备份记录</p>
+          <el-button type="primary" @click="doBackup" :loading="backupLoading">🔄 手动备份</el-button>
+          <el-button type="danger" style="margin-left:8px" @click="showRestore=true">📂 数据恢复</el-button>
+          <el-divider/>
+          <div style="font-size:13px;color:#909399;margin-bottom:8px">备份文件列表 <el-button size="small" text @click="fetchBackups">刷新</el-button></div>
+          <el-table :data="backups" stripe size="small">
+            <el-table-column prop="name" label="文件名"/><el-table-column prop="size" label="大小" width="100"/>
+            <el-table-column label="操作" width="100"><template #default="{row}"><el-button size="small" type="danger" @click="doRestore(row.name)">恢复</el-button></template></el-table-column>
+          </el-table>
+          <el-empty v-if="!backups.length" description="暂无备份" :image-size="60"/>
         </el-card>
+        <!-- 恢复确认弹窗 -->
+        <el-dialog v-model="showRestore" title="选择备份文件恢复" width="400px">
+          <el-radio-group v-model="restoreFile"><el-radio v-for="b in backups" :key="b.name" :value="b.name">{{b.name}} ({{b.size}})</el-radio></el-radio-group>
+          <div v-if="!backups.length" style="color:#999;text-align:center">暂无备份文件</div>
+          <template #footer><el-button @click="showRestore=false">取消</el-button><el-button type="danger" @click="doRestore(restoreFile);showRestore=false" :disabled="!restoreFile">确认恢复</el-button></template>
+        </el-dialog>
       </el-tab-pane>
 
       <el-tab-pane v-if="userStore.roleId === 1" label="运维日志" name="opslog">
@@ -511,7 +558,7 @@ onMounted(() => {
           <el-table-column prop="content" label="内容" show-overflow-tooltip />
         </el-table>
         <div style="font-size:12px;color:#999;margin-top:8px">
-          <span>🟢 服务器状态：运行中 | Java: 21 | PID: {{ 'N/A' }} | 运行时间：演示环境</span>
+          <span>🟢 服务器状态：运行中 | Java: {{ sysInfo.javaVersion||'21' }} | 运行: {{ sysInfo.uptime||'--' }} | 内存: {{ sysInfo.usedMemory||'--' }}/{{ sysInfo.totalMemory||'--' }}</span>
         </div>
       </el-tab-pane>
 
@@ -532,10 +579,10 @@ onMounted(() => {
       </el-tab-pane>
 
       <!-- 操作监控（审计员独有） -->
-      <el-tab-pane v-if="userStore.roleId === 2" label="操作监控" name="monitor">
+      <el-tab-pane v-if="userStore.roleId === 2" label="操作监控" name="auditMonitor">
         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
           <span style="color:#909399;font-size:13px">全量登录记录：共 {{ monitorData.totalLogins || 0 }} 次</span>
-          <el-button size="small" @click="fetchMonitor">🔄 刷新</el-button>
+          <el-button size="small" @click="fetchLogMonitor">🔄 刷新</el-button>
         </div>
         <el-table :data="monitorData.loginRecords || []" stripe size="small">
           <el-table-column label="用户ID" width="70" prop="userId" />
@@ -614,6 +661,11 @@ onMounted(() => {
       </el-tab-pane>
 
       <!-- 申请记录 -->
+      <el-tab-pane v-if="[4].includes(userStore.roleId)" label="家庭审批" name="familyApproval">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><el-button size="small" @click="fetchFamilyApps">刷新</el-button></div>
+        <el-table :data="familyApps" stripe size="small"><el-table-column prop="id" label="ID" width="60"/><el-table-column prop="creator_id" label="申请人" width="80"/><el-table-column prop="address" label="地址"/><el-table-column prop="phone" label="电话" width="130"/><el-table-column label="操作" width="180"><template #default="{row}"><el-button size="small" type="success" @click="handleApproveFamily(row.id,1)">通过</el-button><el-button size="small" type="danger" @click="handleApproveFamily(row.id,2)">驳回</el-button></template></el-table-column></el-table>
+      </el-tab-pane>
+
       <el-tab-pane v-if="[4].includes(userStore.roleId)" label="申请记录" name="apply">
         <el-table :data="applyList" stripe v-loading="applyLoading">
           <el-table-column prop="id" label="ID" width="60" />
@@ -673,6 +725,18 @@ onMounted(() => {
           </el-table-column>
         </el-table>
         <el-pagination v-model:current-page="newsPage" :total="newsTotal" :page-size="10" layout="prev,pager,next" class="pagination" />
+      </el-tab-pane>
+
+            <!-- 积分商城管理（业务管理员可见） -->
+      <el-tab-pane v-if="userStore.roleId===3" label="积分商城" name="points">
+        <div class="toolbar"><el-button type="primary" @click="openAddPoint">新增商品</el-button></div>
+        <el-table :data="pointGoods" stripe size="small">
+          <el-table-column prop="id" label="ID" width="60"/><el-table-column prop="name" label="名称"/>
+          <el-table-column prop="cost" label="积分" width="80"/><el-table-column prop="stock" label="库存" width="80"/>
+          <el-table-column label="操作" width="160">
+            <template #default="{row}"><el-button size="small" @click="openEditPoint(row)">编辑</el-button><el-button size="small" type="danger" @click="handleDeletePoint(row.id)">删除</el-button></template>
+          </el-table-column>
+        </el-table>
       </el-tab-pane>
 
       <el-tab-pane v-if="[4].includes(userStore.roleId)" label="回收站" name="recycle">
@@ -855,6 +919,17 @@ onMounted(() => {
         <el-button type="primary" @click="saveNews">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 积分商品编辑弹窗 -->
+    <el-dialog v-model="pointDlg" :title="pointForm.id?'编辑商品':'新增商品'" width="400px">
+      <el-form :model="pointForm" label-width="80px" size="small">
+        <el-form-item label="名称"><el-input v-model="pointForm.name"/></el-form-item>
+        <el-form-item label="积分"><el-input-number v-model="pointForm.cost" :min="1"/></el-form-item>
+        <el-form-item label="图片"><el-input v-model="pointForm.image" placeholder="points/xxx.png"/></el-form-item>
+        <el-form-item label="库存"><el-input-number v-model="pointForm.stock" :min="0"/></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="pointDlg=false">取消</el-button><el-button type="primary" @click="savePoint">保存</el-button></template>
+    </el-dialog>
   </div>
 </template>
 
@@ -868,20 +943,12 @@ onMounted(() => {
 .toolbar {
   margin-bottom: 16px;
 }
-.stat-card {
-  margin-bottom: 16px;
-}
-.stat-value {
-  font-size: 36px;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-.stat-label {
-  font-size: 14px;
-  color: #909399;
-}
-.stat-blue { color: #409eff; }
-.stat-green { color: #67c23a; }
-.stat-orange { color: #e6a23c; }
-.stat-red { color: #f56c6c; }
+.dash-section-title { font-size:15px; font-weight:bold; color:#303133; margin-bottom:10px; padding-left:4px; border-left:3px solid #409eff; }
+.dash-card { background:#fff; border-radius:8px; border-top:3px solid #ddd; padding:20px 16px 14px; position:relative; margin-bottom:12px; transition:box-shadow .2s; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+.dash-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+.dash-card-num { font-size:32px; font-weight:bold; }
+.dash-card-icon { position:absolute; right:16px; top:16px; font-size:28px; opacity:0.3; }
+.dash-card-label { font-size:13px; color:#909399; margin-top:4px; }
+.dash-card-sm { padding:14px 16px 10px; }
+.dash-card-num-sm { font-size:24px; font-weight:bold; }
 </style>

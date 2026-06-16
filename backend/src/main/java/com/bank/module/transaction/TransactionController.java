@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.*;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -54,12 +55,12 @@ public class TransactionController {
         Long userId = getUserId(request);
         response.setContentType("text/csv;charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment;filename=transaction.csv");
-        // BOM for Excel UTF-8
-        response.getOutputStream().write(new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF});
-        PrintWriter w = response.getWriter();
+        OutputStream os = response.getOutputStream();
+        os.write(new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF});
+        PrintWriter w = new PrintWriter(new OutputStreamWriter(os, "UTF-8"));
         w.println("时间,类型,金额,交易对方,备注");
         transactionService.list(userId, 1, 10000, null, startDate, endDate).getRecords().forEach(r -> {
-            String type = switch (r.getType()) { case 1->"转账"; case 2->"缴费"; case 3->"理财"; case 4->"还款"; default->"-"; };
+            String type; switch(r.getType()){case 1:type="转账";break;case 2:type="缴费";break;case 3:type="理财";break;case 4:type="还款";break;case 5:type="存款";break;case 6:type="取款";break;default:type="-";}
             w.printf("%s,%s,%.2f,%s,%s\n", r.getTradeTime(), type, r.getAmount(),
                 r.getToAccount()!=null&&r.getToAccount().length()>=4?"****"+r.getToAccount().substring(r.getToAccount().length()-4):"-",
                 r.getRemark()!=null?r.getRemark():"");

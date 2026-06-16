@@ -4,6 +4,7 @@ import { updateProfile, changePassword, setTransactionPassword, getLoginRecords 
 import { getApplyList } from '@/api/apply'
 import request from '@/api/request'
 import { getTransactionList } from '@/api/transaction'
+import { getHoldings } from '@/api/wealth'
 import { getMyCards, freezeCard, unfreezeCard, cancelCard, depositCard, withdrawCard } from '@/api/card'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -79,7 +80,19 @@ async function exportTx() {
   URL.revokeObjectURL(url)
 }
 
-onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx() })
+const holdings=ref([])
+async function fetchHoldings(){const r=await getHoldings();if(r.code===200)holdings.value=r.data}
+const family=ref(null)
+async function fetchFamily(){const r=await request.get('/family/my');if(r.code===200)family.value=r.data}
+const joinForm=ref({accountNo:'',role:'成员'}); const showJoin=ref(false); const showCreate=ref(false)
+const createForm=ref({address:'',phone:userStore.phone,remark:''})
+async function handleCreate(){if(!createForm.value.address){ElMessage.error('请填写家庭地址');return};await request.post('/family/create',createForm.value);ElMessage.success('已提交,等待管理员审批');showCreate.value=false;fetchFamily()}
+const addMemberForm=ref({phone:'',role:'成员'});const showAddMember=ref(false)
+async function handleAddMember(){if(!addMemberForm.value.phone){ElMessage.error('请输入对方手机号');return};await request.post('/family/add-member',addMemberForm.value);ElMessage.success('已添加,等待管理员审批');showAddMember.value=false;fetchFamily()}
+async function handleJoin(){await request.post('/family/join',joinForm.value);ElMessage.success('申请已提交');showJoin.value=false;fetchFamily()}
+async function handleCreatorApprove(mid,approved){await request.post('/family/creator-approve/'+mid+'?approved='+approved);ElMessage.success(approved===1?'已提交管理员审批':'已拒绝');fetchFamily()}
+
+onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx(); fetchHoldings(); fetchFamily() })
 </script>
 
 <template>
@@ -94,6 +107,7 @@ onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx() })
         <el-menu-item index="overview">🏠 账户概览</el-menu-item>
         <el-menu-item index="apply">📋 我的申请</el-menu-item>
         <el-menu-item index="tx">📊 交易流水</el-menu-item>
+        <el-menu-item index="family">👨‍👩‍👧‍👦 我的家庭</el-menu-item>
         <el-menu-item index="security">🔒 安全设置</el-menu-item>
       </el-menu>
       <div style="margin-top:auto;padding:12px 0">
@@ -105,6 +119,16 @@ onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx() })
     <main class="uc-main">
       <!-- 账户概览 -->
       <div v-show="activeTab==='overview'">
+        <!-- 理财持仓 -->
+        <div v-if="holdings.length" style="margin-bottom:16px">
+          <h4 style="margin-bottom:8px;color:#e6a23c">📈 理财持仓 (每日计息)</h4>
+          <el-table :data="holdings" size="small" stripe>
+            <el-table-column prop="product_name" label="产品"/><el-table-column prop="amount" label="本金"><template #default="s">¥{{s.row.amount}}</template></el-table-column>
+            <el-table-column prop="rate" label="年化" width="80"><template #default="s">{{s.row.rate}}%</template></el-table-column>
+            <el-table-column label="预估收益" width="120"><template #default="s"><span style="color:#67c23a">+¥{{s.row.dailyEarn?.toFixed(2)||0}}</span></template></el-table-column>
+            <el-table-column label="总值" width="130"><template #default="s"><b>¥{{s.row.totalValue?.toFixed(2)||s.row.amount}}</b></template></el-table-column>
+          </el-table>
+        </div>
         <el-row :gutter="16" style="margin-bottom:16px">
           <el-col :span="8"><div class="uc-stat"><div class="uc-stat-val" style="color:#67c23a">¥{{ totalBalance.toLocaleString() }}</div><div>总资产</div></div></el-col>
           <el-col :span="8"><div class="uc-stat"><div class="uc-stat-val" style="color:#409eff">{{ cards.length }}</div><div>银行卡</div></div></el-col>
@@ -183,6 +207,42 @@ onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx() })
           <el-table-column prop="remark" label="备注"/>
         </el-table>
         <el-empty v-if="!txList.length&&!txLoading" description="暂无交易记录" />
+      </div>
+
+      <!-- 我的家庭 -->
+      <div v-show="activeTab==='family'">
+        <!-- 无家庭：创建或加入 -->
+        <div v-if="!family" style="display:flex;gap:16px">
+          <el-card style="flex:1;text-align:center"><template #header>创建家庭</template><p style="color:#909399;font-size:13px;margin-bottom:16px">申请成为户主，审核通过后生成户号</p><el-button type="primary" @click="showCreate=true">申请创建家庭</el-button></el-card>
+          <el-card style="flex:1;text-align:center"><template #header>加入家庭</template><p style="color:#909399;font-size:13px;margin-bottom:16px">输入家庭ID和身份，由户主审批</p><el-button @click="showJoin=true">申请加入</el-button></el-card>
+        </div>
+        <!-- 有家庭 -->
+        <div v-else>
+          <el-alert :title="'家庭信息 — 户主：'+(family.members?.find(m=>m.role==='户主')?.user_id===userStore.userId?'您':'其他')" type="success" :closable="false" style="margin-bottom:12px"/>
+          <el-row :gutter="16">
+            <el-col :span="8"><el-card><div style="text-align:center"><div style="font-size:24px">📍</div><div style="font-size:13px;margin-top:4px">{{family.address}}</div></div></el-card></el-col>
+            <el-col :span="8"><el-card><div style="text-align:center"><div style="font-size:24px">📞</div><div style="font-size:13px;margin-top:4px">{{family.phone}}</div></div></el-card></el-col>
+            <el-col :span="8"><el-card><div style="text-align:center"><div style="font-size:24px">👥</div><div style="font-size:13px;margin-top:4px">{{family.members?.length||0}} 人</div></div></el-card></el-col>
+          </el-row>
+          <!-- 户号 -->
+          <el-card header="家庭户号" style="margin-top:12px">
+            <el-table :data="family.accounts||[]" size="small"><el-table-column prop="type" label="类型" width="100"><template #default="s">{{ {water:'💧水费',electric:'⚡电费',gas:'🔥燃气',phone:'📱话费',broadband:'🌐宽带'}[s.row.type] }}</template></el-table-column><el-table-column prop="account_no" label="户号"/><el-table-column prop="holder_name" label="户主"/></el-table>
+          </el-card>
+          <!-- 成员 -->
+          <el-card style="margin-top:12px"><template #header>家庭成员<el-button v-if="family.members?.find(m=>m.role==='户主'&&m.user_id==userStore.userId)" size="small" type="primary" style="float:right" @click="showAddMember=true">+ 添加成员</el-button></template>
+            <el-table :data="family.members||[]" size="small"><el-table-column prop="role" label="身份" width="80"/><el-table-column label="用户ID" width="80" prop="user_id"/><el-table-column label="审批状态" width="130"><template #default="s"><span v-if="s.row.status===1" style="color:#67c23a">✅ 已通过</span><span v-else-if="s.row.creator_approved===2" style="color:#f56c6c">❌ 户主拒绝</span><span v-else-if="s.row.creator_approved===1" style="color:#e6a23c">⏳ 待管理员</span><span v-else style="color:#909399">⏳ 待户主</span></template></el-table-column>
+            <el-table-column v-if="family.members?.find(m=>m.role==='户主'&&m.user_id==userStore.userId)" label="操作" width="180"><template #default="s"><template v-if="s.row.creator_approved===0"><el-button size="small" type="success" @click="handleCreatorApprove(s.row.id,1)">通过</el-button><el-button size="small" type="danger" @click="handleCreatorApprove(s.row.id,2)">拒绝</el-button></template><el-button v-else-if="s.row.role!=='户主'&&s.row.status===1" size="small" type="danger" @click="request.post('/family/remove-member/'+s.row.id).then(()=>{ElMessage.success('已移除');fetchFamily()})">移除</el-button></template></el-table-column>
+            </el-table>
+          </el-card>
+        </div>
+        <!-- 创建家庭弹窗 -->
+        <el-dialog v-model="showCreate" title="申请创建家庭" width="420px"><el-form :model="createForm" label-width="100px" size="small"><el-form-item label="家庭地址" required><el-input v-model="createForm.address" placeholder="如：西安市雁塔区电子二路18号"/></el-form-item><el-form-item label="联系电话"><el-input v-model="createForm.phone" placeholder="户主联系电话"/></el-form-item><el-form-item label="备注"><el-input v-model="createForm.remark" type="textarea" :rows="2" placeholder="选填"/></el-form-item></el-form><template #footer><el-button @click="showCreate=false">取消</el-button><el-button type="primary" @click="handleCreate">提交申请</el-button></template></el-dialog>
+
+        <!-- 添加成员弹窗（户主专用） -->
+        <el-dialog v-model="showAddMember" title="添加家庭成员" width="380px"><el-form :model="addMemberForm" label-width="80px" size="small"><el-form-item label="手机号" required><el-input v-model="addMemberForm.phone" placeholder="对方注册手机号"/></el-form-item><el-form-item label="身份"><el-select v-model="addMemberForm.role"><el-option value="配偶"/><el-option value="子女"/><el-option value="父母"/><el-option value="成员"/></el-select></el-form-item></el-form><template #footer><el-button @click="showAddMember=false">取消</el-button><el-button type="primary" @click="handleAddMember">提交(待管理员审批)</el-button></template></el-dialog>
+
+        <!-- 加入弹窗 -->
+        <el-dialog v-model="showJoin" title="申请加入家庭" width="360px"><el-form :model="joinForm" label-width="80px" size="small"><el-form-item label="户号"><el-input v-model="joinForm.accountNo" placeholder="输入户号"/></el-form-item><el-form-item label="身份"><el-select v-model="joinForm.role"><el-option value="配偶"/><el-option value="子女"/><el-option value="父母"/><el-option value="成员"/></el-select></el-form-item></el-form><template #footer><el-button @click="showJoin=false">取消</el-button><el-button type="primary" @click="handleJoin">提交申请</el-button></template></el-dialog>
       </div>
 
       <!-- 安全设置 -->

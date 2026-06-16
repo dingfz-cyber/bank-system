@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { submitApply } from '@/api/apply'
 import { setTransactionPassword } from '@/api/user'
+import { getMyCards } from '@/api/card'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -16,12 +17,16 @@ const form = ref({
   realName: '',
   phone: '',
   applyType: isCard.value ? 1 : 2,
-  transactionPassword: ''
+  transactionPassword: '',
+  cardId: null
 })
-const loading = ref(false)
+const loading = ref(false); const cards=ref([]);
+import { onMounted } from 'vue'
+onMounted(async()=>{const r=await getMyCards();if(r.code===200)cards.value=r.data.filter(c=>c.status===0)})
 
 async function handleSubmit() {
   if (!form.value.realName || !form.value.phone) { ElMessage.warning('请填写完整信息'); return }
+  if (!isCard.value && !form.value.cardId) { ElMessage.warning('请选择放款银行卡'); return }
   if (isCard.value && !form.value.transactionPassword) { ElMessage.warning('请设置6位数字交易密码'); return }
   loading.value = true
   try {
@@ -58,6 +63,11 @@ async function handleSubmit() {
         </el-form-item>
         <el-form-item v-if="isCard" label="交易密码">
           <el-input v-model="form.transactionPassword" type="password" placeholder="请设置6位数字交易密码（转账/缴费使用）" maxlength="6" show-password />
+        </el-form-item>
+        <el-form-item v-if="!isCard" label="收款卡">
+          <el-select v-model="form.cardId" placeholder="选择放款银行卡" style="width:100%">
+            <el-option v-for="c in cards" :key="c.id" :value="c.id" :label="'****'+c.cardNumber.slice(-4)+' ('+(c.cardType===2?'信用卡':'借记卡')+')'" />
+          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="loading" @click="handleSubmit">

@@ -59,6 +59,30 @@ export default defineConfig({
       '/log': {
         target: 'http://localhost:8080',
         changeOrigin: true
+      },
+      '/points': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/wealth': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/family': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/utility': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/db': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/system': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
       }
     }
   }

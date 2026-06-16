@@ -9,8 +9,12 @@ import com.bank.module.apply.dto.ApplyDto;
 import com.bank.module.card.BankCardService;
 import com.bank.module.message.Message;
 import com.bank.module.message.MessageMapper;
+import com.bank.module.card.BankCard;
+import com.bank.module.card.BankCardMapper;
 import com.bank.module.product.BankProduct;
 import com.bank.module.product.BankProductMapper;
+import com.bank.module.transaction.TransactionMapper;
+import com.bank.module.transaction.TransactionRecord;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +32,8 @@ public class ApplyInfoServiceImpl implements ApplyInfoService {
     private final BankCardService bankCardService;
     private final MessageMapper messageMapper;
     private final BankProductMapper bankProductMapper;
+    private final TransactionMapper transactionMapper;
+    private final BankCardMapper bankCardMapper;
 
     @Override
     @OperationLog(value = "提交申请", type = "add")
@@ -38,6 +44,7 @@ public class ApplyInfoServiceImpl implements ApplyInfoService {
         apply.setRealName(dto.getRealName());
         apply.setPhone(dto.getPhone());
         apply.setApplyType(dto.getApplyType());
+        apply.setCardId(dto.getCardId());
         applyInfoMapper.insert(apply);
     }
 
@@ -113,6 +120,26 @@ public class ApplyInfoServiceImpl implements ApplyInfoService {
         apply.setApproverId(approverId);
         apply.setApproveTime(LocalDateTime.now());
         applyInfoMapper.updateById(apply);
+
+        // 审批通过写入交易流水 + 贷款放款
+        if (status == 1) {
+            TransactionRecord tr = new TransactionRecord();
+            tr.setUserId(apply.getUserId()); tr.setFee(java.math.BigDecimal.ZERO); tr.setStatus(1); tr.setTradeTime(LocalDateTime.now());
+            if (apply.getApplyType() == 1) { tr.setType(1); tr.setAmount(java.math.BigDecimal.ZERO); tr.setRemark("办卡激活"); }
+            else {
+                java.math.BigDecimal loanAmt = new java.math.BigDecimal("50000");
+                tr.setType(4); tr.setAmount(loanAmt); tr.setRemark("贷款放款");
+                if (apply.getCardId() != null) {
+                    BankCard targetCard = bankCardMapper.selectById(apply.getCardId());
+                    if (targetCard != null && targetCard.getUserId().equals(apply.getUserId())) {
+                        targetCard.setBalance(targetCard.getBalance().add(loanAmt));
+                        bankCardMapper.updateById(targetCard);
+                        tr.setToAccount(targetCard.getCardNumber());
+                    }
+                }
+            }
+            transactionMapper.insert(tr);
+        }
 
         // 办卡审批通过 → 根据产品判断卡类型
         if (status == 1 && apply.getApplyType() == 1) {

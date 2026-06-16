@@ -25,6 +25,8 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (response) => {
     const res = response.data
+    // Blob 响应（如CSV导出）直接返回
+    if (res instanceof Blob || response.config.responseType === 'blob') return res
     if (res.code !== 200) {
       ElMessage.error(res.msg || '请求失败')
       return Promise.reject(new Error(res.msg))

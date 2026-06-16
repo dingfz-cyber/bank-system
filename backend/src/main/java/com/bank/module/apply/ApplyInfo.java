@@ -25,6 +25,9 @@ public class ApplyInfo {
 
     private Integer applyType;
 
+    /** 贷款放款目标卡 ID */
+    private Long cardId;
+
     /** 审核状态：0=待审核 1=已通过 2=已拒绝 */
     private Integer status;
 

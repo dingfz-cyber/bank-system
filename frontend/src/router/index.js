@@ -105,6 +105,12 @@ const routes = [
     meta: { title: '产品详情' }
   },
   {
+    path: '/mall',
+    name: 'mall',
+    component: () => import('@/views/mall/index.vue'),
+    meta: { title: '积分商城', needLogin: true }
+  },
+  {
     path: '/calculator',
     name: 'calculator',
     component: () => import('@/views/calculator/index.vue'),

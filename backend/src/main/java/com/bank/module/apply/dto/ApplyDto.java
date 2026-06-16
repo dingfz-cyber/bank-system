@@ -23,4 +23,7 @@ public class ApplyDto {
 
     @NotNull(message = "申请类型不能为空")
     private Integer applyType;
+
+    /** 贷款放款目标卡 */
+    private Long cardId;
 }

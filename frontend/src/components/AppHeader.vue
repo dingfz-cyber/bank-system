@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getUnreadCount, getMessages, readAllMessages, readMessage } from '@/api/message'
+import { getMall, getRecords, redeem } from '@/api/points'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -31,6 +33,11 @@ function goLogin() { router.push({ name: 'login' }) }
 const isDark = ref(localStorage.getItem('darkMode') === 'true')
 function toggleDark() { isDark.value = !isDark.value; document.documentElement.classList.toggle('dark', isDark.value); localStorage.setItem('darkMode', isDark.value) }
 
+// 积分系统
+const pointGoods=ref([]); const pointRecs=ref([]); const pointTab=ref('detail')
+async function loadPoints(){const[g,r]=await Promise.all([getMall(),getRecords()]);if(g.code===200)pointGoods.value=g.data;if(r.code===200)pointRecs.value=r.data}
+async function doRedeem(gg){if(userStore.points<gg.cost){ElMessage.error('积分不足');return};await redeem(gg.id);ElMessage.success('兑换成功');userStore.points-=gg.cost;localStorage.setItem('points',userStore.points);loadPoints()}
+
 onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000); if(localStorage.getItem('darkMode')==='true') document.documentElement.classList.add('dark') })
 </script>
 
@@ -55,17 +62,32 @@ onMounted(() => { fetchUnread(); setInterval(fetchUnread, 30000); if(localStorag
       <div class="header-right">
         <template v-if="userStore.isLoggedIn">
           <span class="user-info">欢迎，{{ userStore.nickName }}
-            <el-popover v-if="userStore.roleId === 5" placement="bottom" :width="260" trigger="click">
+            <el-popover v-if="userStore.roleId === 5" placement="bottom" :width="420" trigger="click" @show="loadPoints" :persistent="true" :hide-after="0">
               <template #reference>
                 <span style="color:#e6a23c;font-size:12px;cursor:pointer">⭐{{ userStore.points || 0 }}</span>
               </template>
-              <div style="font-size:13px;line-height:2">
-                <b>积分规则</b>
-                <div>📝 注册账号 +50</div>
-                <div>🔐 每日登录 +5</div>
-                <div>💳 办理业务 +10</div>
-                <el-divider style="margin:8px 0"/>
-                <div style="color:#909399">积分可兑换手续费减免等权益</div>
+              <div>
+                <el-tabs v-model="pointTab">
+                  <el-tab-pane label="积分明细" name="detail">
+                    <div style="font-size:12px;margin-bottom:8px">📝注册+50 | 🔐登录+5 | 💳业务+10 <el-button size="small" text @click="loadPoints" style="float:right">刷新</el-button></div>
+                    <div v-if="!pointRecs.length" style="text-align:center;color:#999;padding:20px;font-size:13px">暂无积分记录</div>
+                    <div v-for="r in pointRecs" :key="r.id" style="padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+                      <span :style="{color:r.points>0?'#67c23a':'#f56c6c'}">{{r.points>0?'+':''}}{{r.points}}</span>
+                      <span style="margin-left:8px;color:#666">{{r.reason}}</span>
+                      <span style="float:right;color:#999">{{r.createTime?.slice(0,16)}}</span>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="积分商城" name="mall">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-height:280px;overflow-y:auto">
+                      <div v-for="g in pointGoods" :key="g.id" style="text-align:center;background:#f8f9fa;border-radius:8px;padding:8px">
+                        <img :src="'/bankImg/'+g.image" style="width:80px;height:80px;object-fit:cover;border-radius:6px" @error="$event.target.style.display='none'" />
+                        <div style="font-size:12px;font-weight:bold;margin:4px 0">{{g.name}}</div>
+                        <div style="color:#e6a23c;font-size:12px">⭐{{g.cost}}</div>
+                        <el-button size="small" type="warning" @click="doRedeem(g)" :disabled="g.stock<=0||userStore.points<g.cost" style="width:100%;margin-top:4px">{{g.stock<=0?'售罄':userStore.points<g.cost?'不足':'兑'}}</el-button>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                </el-tabs>
               </div>
             </el-popover>
           </span>

@@ -5,6 +5,8 @@ import com.bank.common.BusinessException;
 import com.bank.log.OperationLog;
 import com.bank.module.transaction.TransactionMapper;
 import com.bank.module.transaction.TransactionRecord;
+import com.bank.module.points.PointsRecord;
+import com.bank.module.points.PointsRecordMapper;
 import com.bank.module.user.User;
 import com.bank.module.user.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class BankCardServiceImpl implements BankCardService {
     private final BankCardMapper bankCardMapper;
     private final UserMapper userMapper;
     private final TransactionMapper transactionMapper;
+    private final PointsRecordMapper pointsRecordMapper;
     private final Random random = new Random();
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -108,6 +111,15 @@ public class BankCardServiceImpl implements BankCardService {
         r.setUserId(userId); r.setFromCardId(id); r.setToAccount(card.getCardNumber());
         r.setAmount(amount); r.setFee(BigDecimal.ZERO); r.setType(5); r.setStatus(1); r.setTradeTime(LocalDateTime.now());
         transactionMapper.insert(r);
+        addPoints(userId, 5, "存款奖励");
+    }
+
+    private void addPoints(Long userId, int pts, String reason) {
+        User u = userMapper.selectById(userId);
+        if (u != null && u.getRoleId() != null && u.getRoleId() == 5) {
+            u.setPoints((u.getPoints()==null?0:u.getPoints()) + pts); userMapper.updateById(u);
+            PointsRecord pr = new PointsRecord(); pr.setUserId(userId); pr.setPoints(pts); pr.setReason(reason); pointsRecordMapper.insert(pr);
+        }
     }
 
     @Override
@@ -129,6 +141,7 @@ public class BankCardServiceImpl implements BankCardService {
         r.setUserId(userId); r.setFromCardId(id); r.setToAccount(card.getCardNumber());
         r.setAmount(amount); r.setFee(BigDecimal.ZERO); r.setType(6); r.setStatus(1); r.setTradeTime(LocalDateTime.now());
         transactionMapper.insert(r);
+        addPoints(userId, 2, "取款操作");
     }
 
     private BankCard checkOwnership(Long id, Long userId) {

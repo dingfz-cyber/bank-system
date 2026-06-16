@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { getProductList } from '@/api/product'
+import { buyWealth } from '@/api/wealth'
+import { getMyCards } from '@/api/card'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { IMAGE_BASE_URL } from '@/utils/constants'
 
 const props = defineProps({
@@ -49,6 +51,18 @@ function handleClear() { keyword.value = ''; page.value = 1; fetchData() }
 
 function getImageUrl(path) { return path ? `${imageBaseUrl}${path}` : '' }
 
+const wealthDlg=ref(false); const wealthProd=ref(null); const wealthCards=ref([]); const wealthCard=ref(null); const wealthAmount=ref('')
+async function openWealth(p){
+  if(!userStore.isLoggedIn){ElMessageBox.confirm('请先登录','提示',{confirmButtonText:'去登录'}).then(()=>router.push({name:'login',query:{redirect:router.currentRoute.value.fullPath}}));return}
+  if(p.productType===1&&p.rate>0){ wealthProd.value=p; wealthAmount.value=p.minAmount||1000; wealthDlg.value=true; const r=await getMyCards(); if(r.code===200) wealthCards.value=r.data.filter(c=>c.status===0) }else applyProduct(p)
+}
+async function doBuyWealth(){
+  if(!wealthCard.value){ElMessage.error('请选择付款卡');return}
+  if(!wealthAmount.value||Number(wealthAmount.value)<=0){ElMessage.error('请输入有效金额');return}
+  await buyWealth({cardId:wealthCard.value,productId:wealthProd.value.id,productName:wealthProd.value.productName,amount:Number(wealthAmount.value),rate:wealthProd.value.rate})
+  ElMessage.success('购买成功!积分+20'); wealthDlg.value=false
+}
+
 function applyProduct(product) {
   if (!userStore.isLoggedIn) {
     ElMessageBox.confirm('请先登录后再申请', '提示', { confirmButtonText: '去登录', cancelButtonText: '取消' })
@@ -85,7 +99,7 @@ watch(() => props.type, fetchData)
           <p class="rate" v-if="p.rate > 0">{{ p.rate }}%</p>
           <p class="intro">{{ p.intro }}</p>
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <el-button type="primary" size="small" @click.stop="applyProduct(p)" :disabled="p.productStatus===1">
+            <el-button type="primary" size="small" @click.stop="openWealth(p)" :disabled="p.productStatus===1">
               {{ p.productStatus===1 ? '已停售' : '立即申请' }}</el-button>
             <span @click.stop><el-checkbox style="margin:0" :model-value="compareSet.has(p.id)" @change="toggleCompare(p.id)">对比</el-checkbox></span>
           </div>
@@ -113,6 +127,17 @@ watch(() => props.type, fetchData)
         <el-table-column label="风险等级"><template #default="{ row }">{{ {1:'低',2:'中',3:'高'}[row.riskLevel] || '-' }}</template></el-table-column>
         <el-table-column label="手续费"><template #default="{ row }">{{ row.feeDesc || '免手续费' }}</template></el-table-column>
       </el-table>
+    </el-dialog>
+
+    <!-- 理财购买弹窗 -->
+    <el-dialog v-model="wealthDlg" title="购买理财产品" width="400px">
+      <div v-if="wealthProd" style="margin-bottom:12px"><b>{{wealthProd.productName}}</b> | 年化 {{wealthProd.rate}}% | 最低 ¥{{wealthProd.minAmount||1000}}</div>
+      <el-form label-width="80px" size="small">
+        <el-form-item label="付款卡"><el-select v-model="wealthCard" style="width:100%" placeholder="选择付款卡"><el-option v-for="c in wealthCards" :key="c.id" :value="c.id" :label="'****'+c.cardNumber.slice(-4)+' (¥'+c.balance+')'"/></el-select></el-form-item>
+        <el-form-item label="金额"><el-input v-model="wealthAmount" type="number"/></el-form-item>
+      </el-form>
+      <div style="font-size:12px;color:#f56c6c;margin-top:8px">⚠ 理财非存款，产品有风险，投资需谨慎</div>
+      <template #footer><el-button @click="wealthDlg=false">取消</el-button><el-button type="primary" @click="doBuyWealth">确认购买(积分+20)</el-button></template>
     </el-dialog>
   </div>
 </template>

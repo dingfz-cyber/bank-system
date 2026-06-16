@@ -9,6 +9,8 @@ import com.bank.module.card.BankCard;
 import com.bank.module.card.BankCardMapper;
 import com.bank.module.message.Message;
 import com.bank.module.message.MessageMapper;
+import com.bank.module.points.PointsRecord;
+import com.bank.module.points.PointsRecordMapper;
 import com.bank.module.user.User;
 import com.bank.module.user.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final BankCardMapper bankCardMapper;
     private final UserMapper userMapper;
     private final MessageMapper messageMapper;
+    private final PointsRecordMapper pointsRecordMapper;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
@@ -116,6 +119,14 @@ public class TransactionServiceImpl implements TransactionService {
         recvMsg.setType("transaction");
         recvMsg.setIsRead(0);
         messageMapper.insert(recvMsg);
+
+        // 积分奖励：转账+10
+        User u = userMapper.selectById(userId);
+        if (u != null && u.getRoleId() == 5) {
+            u.setPoints((u.getPoints()==null?0:u.getPoints()) + 10);
+            userMapper.updateById(u);
+            PointsRecord pr = new PointsRecord(); pr.setUserId(userId); pr.setPoints(10); pr.setReason("转账奖励"); pointsRecordMapper.insert(pr);
+        }
     }
 
     @Override
