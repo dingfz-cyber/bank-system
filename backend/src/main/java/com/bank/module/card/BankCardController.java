@@ -6,7 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 银行卡控制器
@@ -68,6 +70,29 @@ public class BankCardController {
     public Result<Void> cancel(@PathVariable Long id, HttpServletRequest request) {
         Long userId = getUserId(request);
         bankCardService.cancel(id, userId);
+        return Result.success();
+    }
+
+    /**
+     * 存款
+     */
+    @PostMapping("/deposit/{id}")
+    public Result<Void> deposit(@PathVariable Long id, @RequestBody Map<String, Object> body, HttpServletRequest request) {
+        Long userId = getUserId(request);
+        BigDecimal amount = new BigDecimal(body.get("amount").toString());
+        bankCardService.deposit(id, userId, amount);
+        return Result.success();
+    }
+
+    /**
+     * 取款
+     */
+    @PostMapping("/withdraw/{id}")
+    public Result<Void> withdraw(@PathVariable Long id, @RequestBody Map<String, Object> body, HttpServletRequest request) {
+        Long userId = getUserId(request);
+        BigDecimal amount = new BigDecimal(body.get("amount").toString());
+        String pwd = body.get("transactionPassword").toString();
+        bankCardService.withdraw(id, userId, amount, pwd);
         return Result.success();
     }
 }

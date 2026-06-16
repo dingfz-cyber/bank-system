@@ -1,5 +1,6 @@
 package com.bank.module.card;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -36,4 +37,14 @@ public interface BankCardService {
      * 注销银行卡
      */
     void cancel(Long id, Long userId);
+
+    /**
+     * 存款
+     */
+    void deposit(Long id, Long userId, BigDecimal amount);
+
+    /**
+     * 取款（需交易密码）
+     */
+    void withdraw(Long id, Long userId, BigDecimal amount, String transactionPassword);
 }

@@ -4,7 +4,7 @@ import { updateProfile, changePassword, setTransactionPassword, getLoginRecords 
 import { getApplyList } from '@/api/apply'
 import request from '@/api/request'
 import { getTransactionList } from '@/api/transaction'
-import { getMyCards, freezeCard, unfreezeCard, cancelCard } from '@/api/card'
+import { getMyCards, freezeCard, unfreezeCard, cancelCard, depositCard, withdrawCard } from '@/api/card'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { APPLY_STATUS_MAP } from '@/utils/constants'
@@ -52,6 +52,18 @@ async function fetchCards() { const res = await getMyCards(); if (res.code===200
 async function handleFreeze(card) { await ElMessageBox.confirm('确定冻结？'); await freezeCard(card.id); ElMessage.success('已冻结'); fetchCards() }
 async function handleUnfreeze(card) { await unfreezeCard(card.id); ElMessage.success('已解冻'); fetchCards() }
 async function handleCancel(card) { await ElMessageBox.confirm('确定注销？不可恢复！','警告',{type:'warning'}); await cancelCard(card.id); ElMessage.success('已注销'); fetchCards() }
+
+const cashDialog = ref(false); const cashCard = ref(null); const cashAmount = ref(''); const cashPwd = ref(''); const cashMode = ref('deposit')
+function openCash(card, mode) { cashCard.value=card; cashMode.value=mode; cashAmount.value=''; cashPwd.value=''; cashDialog.value=true }
+async function doCash() {
+  if (!cashAmount.value||Number(cashAmount.value)<=0) { ElMessage.error('请输入有效金额'); return }
+  if (cashMode.value==='withdraw') {
+    if (!cashPwd.value) { ElMessage.error('请输入交易密码'); return }
+    await withdrawCard(cashCard.value.id, {amount:Number(cashAmount.value),transactionPassword:cashPwd.value})
+  } else { await depositCard(cashCard.value.id, {amount:Number(cashAmount.value)}) }
+  ElMessage.success(cashMode.value==='deposit'?'存款成功':'取款成功')
+  cashDialog.value=false; fetchCards()
+}
 
 // 申请
 const applyList = ref([]); const applyPage = ref(1); const applyTotal = ref(0)
@@ -115,6 +127,8 @@ onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx() })
               </div>
               <div class="card-actions">
                 <template v-if="card.status===0">
+                  <el-button size="small" type="success" text @click="openCash(card,'deposit')">存款</el-button>
+                  <el-button size="small" text @click="openCash(card,'withdraw')">取款</el-button>
                   <el-button size="small" type="warning" text @click="handleFreeze(card)">冻结</el-button>
                   <el-button v-if="card.cardType===2" size="small" type="danger" text @click="handleCancel(card)">注销</el-button>
                 </template>
@@ -150,10 +164,12 @@ onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx() })
         </div>
         <el-table :data="txList" stripe size="small" v-loading="txLoading">
           <el-table-column prop="tradeTime" label="时间" width="180"/>
-          <el-table-column label="类型" width="80"><template #default="scope">{{ {1:'转账',2:'缴费',3:'理财',4:'还款'}[scope.row.type]||'-' }}</template></el-table-column>
+          <el-table-column label="类型" width="80"><template #default="scope">{{ {1:'转账',2:'缴费',3:'理财',4:'还款',5:'存款',6:'取款'}[scope.row.type]||'-' }}</template></el-table-column>
           <el-table-column label="金额" width="130">
             <template #default="scope">
-              <span :style="{color: myCardIds.has(scope.row.fromCardId) ? '#f56c6c' : '#67c23a', fontWeight:'bold'}">
+              <span v-if="scope.row.type===5" style="color:#67c23a;font-weight:bold">+¥{{ scope.row.amount }}</span>
+              <span v-else-if="scope.row.type===6" style="color:#f56c6c;font-weight:bold">-¥{{ scope.row.amount }}</span>
+              <span v-else :style="{color: myCardIds.has(scope.row.fromCardId) ? '#f56c6c' : '#67c23a', fontWeight:'bold'}">
                 {{ myCardIds.has(scope.row.fromCardId) ? '-' : '+' }}¥{{ scope.row.amount }}
               </span>
             </template>
@@ -208,6 +224,16 @@ onMounted(() => { fetchMyApplies(); fetchCards(); fetchTx() })
         </el-card>
       </div>
     </main>
+    <el-dialog v-model="cashDialog" :title="cashMode==='deposit'?'存款':'取款'" width="360px">
+      <div v-if="cashCard" style="margin-bottom:12px;font-size:13px;color:#909399">
+        {{ cashCard.cardType===2?'信用卡':'借记卡' }} ****{{ cashCard.cardNumber.slice(-4) }} | 余额 ¥{{ cashCard.balance }}
+      </div>
+      <el-form label-width="80px" size="small">
+        <el-form-item label="金额"><el-input v-model="cashAmount" type="number" placeholder="请输入金额"/></el-form-item>
+        <el-form-item v-if="cashMode==='withdraw'" label="交易密码"><el-input v-model="cashPwd" type="password" placeholder="6位交易密码" maxlength="6" show-password/></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="cashDialog=false">取消</el-button><el-button type="primary" @click="doCash">{{ cashMode==='deposit'?'确认存款':'确认取款' }}</el-button></template>
+    </el-dialog>
   </div>
 </template>
 

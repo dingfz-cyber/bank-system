@@ -3,11 +3,17 @@ package com.bank.module.card;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.bank.common.BusinessException;
 import com.bank.log.OperationLog;
+import com.bank.module.transaction.TransactionMapper;
+import com.bank.module.transaction.TransactionRecord;
+import com.bank.module.user.User;
+import com.bank.module.user.UserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
@@ -20,7 +26,10 @@ import java.util.Random;
 public class BankCardServiceImpl implements BankCardService {
 
     private final BankCardMapper bankCardMapper;
+    private final UserMapper userMapper;
+    private final TransactionMapper transactionMapper;
     private final Random random = new Random();
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
     public List<BankCard> listByUserId(Long userId) {
@@ -47,7 +56,7 @@ public class BankCardServiceImpl implements BankCardService {
         card.setCardNumber(generateCardNumber());
         card.setCardType(cardType);
         card.setCreditLimit(cardType == 2 ? new BigDecimal("10000") : BigDecimal.ZERO);
-        card.setBalance(cardType == 2 ? new BigDecimal("5000") : new BigDecimal("10000")); // 演示初始余额
+        card.setBalance(BigDecimal.ZERO);
         card.setCvv(String.format("%03d", random.nextInt(1000)));
         card.setExpiryDate(LocalDate.now().plusYears(3).format(DateTimeFormatter.ofPattern("MM/yy")));
         card.setStatus(0);
@@ -84,6 +93,42 @@ public class BankCardServiceImpl implements BankCardService {
         if (card.getStatus() == 2) throw new BusinessException("该卡已注销");
         card.setStatus(2);
         bankCardMapper.updateById(card);
+    }
+
+    @Override
+    @OperationLog(value = "存款", type = "deposit")
+    public void deposit(Long id, Long userId, BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new BusinessException("存款金额必须大于0");
+        BankCard card = checkOwnership(id, userId);
+        if (card.getStatus() != 0) throw new BusinessException("卡状态异常");
+        card.setBalance(card.getBalance().add(amount));
+        bankCardMapper.updateById(card);
+        // 记录流水
+        TransactionRecord r = new TransactionRecord();
+        r.setUserId(userId); r.setFromCardId(id); r.setToAccount(card.getCardNumber());
+        r.setAmount(amount); r.setFee(BigDecimal.ZERO); r.setType(5); r.setStatus(1); r.setTradeTime(LocalDateTime.now());
+        transactionMapper.insert(r);
+    }
+
+    @Override
+    @OperationLog(value = "取款", type = "withdraw")
+    public void withdraw(Long id, Long userId, BigDecimal amount, String transactionPassword) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new BusinessException("取款金额必须大于0");
+        BankCard card = checkOwnership(id, userId);
+        if (card.getStatus() != 0) throw new BusinessException("卡状态异常");
+        if (card.getBalance().compareTo(amount) < 0) throw new BusinessException("余额不足");
+        User user = userMapper.selectById(userId);
+        if (user == null || user.getTransactionPassword() == null || user.getTransactionPassword().isEmpty())
+            throw new BusinessException("请先设置交易密码");
+        if (!passwordEncoder.matches(transactionPassword, user.getTransactionPassword()))
+            throw new BusinessException("交易密码错误");
+        card.setBalance(card.getBalance().subtract(amount));
+        bankCardMapper.updateById(card);
+        // 记录流水
+        TransactionRecord r = new TransactionRecord();
+        r.setUserId(userId); r.setFromCardId(id); r.setToAccount(card.getCardNumber());
+        r.setAmount(amount); r.setFee(BigDecimal.ZERO); r.setType(6); r.setStatus(1); r.setTradeTime(LocalDateTime.now());
+        transactionMapper.insert(r);
     }
 
     private BankCard checkOwnership(Long id, Long userId) {

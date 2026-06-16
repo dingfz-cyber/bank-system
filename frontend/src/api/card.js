@@ -19,3 +19,11 @@ export function unfreezeCard(id) {
 export function cancelCard(id) {
   return request.post(`/card/cancel/${id}`)
 }
+
+export function depositCard(id, data) {
+  return request.post(`/card/deposit/${id}`, data)
+}
+
+export function withdrawCard(id, data) {
+  return request.post(`/card/withdraw/${id}`, data)
+}
